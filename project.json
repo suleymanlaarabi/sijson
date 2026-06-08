@@ -4,7 +4,12 @@
   "value": {
     "author": "Suleyman Laarabi",
     "description": "A fast, easy-to-use JSON serialization and deserialization library for C23",
-    "clangd": true
+    "clangd": true,
+    "amalgamate": [
+      {
+        "path": "distr"
+      }
+    ]
   },
   "lang.c": {
     "c-standard": "c23",
