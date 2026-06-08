@@ -1,7 +1,7 @@
-#ifndef CJSON_H
-#define CJSON_H
+#ifndef SIJSON_H
+#define SIJSON_H
 
 /* This generated file contains includes for project dependencies */
-#include "cjson/bake_config.h"
+#include "sijson/bake_config.h"
 
 #endif
