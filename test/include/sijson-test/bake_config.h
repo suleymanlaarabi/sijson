@@ -14,26 +14,12 @@
  * dependencies will automatically show up in this file. Include bake_config.h
  * in your main project file. Do not edit! */
 
-#ifndef SIJSON_BAKE_CONFIG_H
-#define SIJSON_BAKE_CONFIG_H
+#ifndef SIJSON_TEST_BAKE_CONFIG_H
+#define SIJSON_TEST_BAKE_CONFIG_H
 
 /* Headers of public dependencies */
-#include <sireflect.h>
-
-/* Convenience macro for exporting symbols */
-#ifndef sijson_STATIC
-#if defined(sijson_EXPORTS) && (defined(_MSC_VER) || defined(__MINGW32__))
-  #define SIJSON_API __declspec(dllexport)
-#elif defined(sijson_EXPORTS)
-  #define SIJSON_API __attribute__((__visibility__("default")))
-#elif defined(_MSC_VER)
-  #define SIJSON_API __declspec(dllimport)
-#else
-  #define SIJSON_API
-#endif
-#else
-  #define SIJSON_API
-#endif
+#include <sijson.h>
+#include <bake_test.h>
 
 #endif
 

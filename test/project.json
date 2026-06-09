@@ -1,0 +1,23 @@
+{
+  "id": "sijson.test",
+  "type": "application",
+  "value": {
+    "public": false,
+    "clangd": true,
+    "use": ["sijson"]
+  },
+  "lang.c": {
+    "c-standard": "c23",
+    "include": ["../src"]
+  },
+  "test": {
+    "testsuites": [
+      {
+        "id": "simple",
+        "testcases": [
+          "hello"
+        ]
+      }
+    ]
+  }
+}
