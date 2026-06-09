@@ -9,7 +9,13 @@
       {
         "path": "distr"
       }
-    ]
+    ],
+    "use": ["sireflect"]
+  },
+  "bundle": {
+    "repositories": {
+      "sireflect": "https://github.com/suleymanlaarabi/sireflect"
+    }
   },
   "lang.c": {
     "c-standard": "c23",
