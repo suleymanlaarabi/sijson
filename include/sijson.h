@@ -4,6 +4,8 @@
 /* This generated file contains includes for project dependencies. */
 #include "sijson/bake_config.h"
 #include "sireflect.h"
+#include <stdbool.h>
+#include <stddef.h>
 
 /*
  * sijson is a tiny JSON serialization layer built on top of sireflect.
@@ -20,8 +22,8 @@
  *
  * Strings returned by sijson_to_json are owned by the caller.
  * Values returned by sijson_from_json are copied out of an internal temporary
- * buffer before the expression ends. Do not keep pointers returned by the
- * lower-level _w_init functions.
+ * buffer before the expression ends. Heap-owned fields inside that value, such
+ * as char *, must be released with sijson_free(type, &value).
  */
 
 /* Internal reflected type handle symbol for a user type. */
@@ -55,6 +57,61 @@
  * The implementation initializes it lazily when a type is first used.
  */
 sireflect_registry_t *sijson_default_registry(void);
+
+/*
+ * Opaque handle for arbitrary JSON values.
+ *
+ * A sijson_value_t can hold null, bool, number, string, array, or object.
+ * Values are owned by sijson's internal context unless documented otherwise.
+ */
+typedef struct sijson_value *sijson_value_t;
+
+typedef enum sijson_type {
+    SIJSON_NULL,
+    SIJSON_BOOL,
+    SIJSON_NUMBER,
+    SIJSON_STRING,
+    SIJSON_ARRAY,
+    SIJSON_OBJECT,
+} sijson_type_t;
+
+/*
+ * Parse/stringify dynamic JSON without a reflected C type.
+ *
+ * sijson_parse returns a value owned by sijson's internal context.
+ * sijson_stringify returns a newly allocated JSON string owned by the caller.
+ */
+sijson_value_t sijson_parse(const char *json);
+char *sijson_stringify(sijson_value_t value);
+
+/* Inspect a dynamic JSON value. */
+sijson_type_t sijson_type(sijson_value_t value);
+
+/* Read scalar values. The value must have the matching sijson_type_t. */
+bool sijson_bool(sijson_value_t value);
+double sijson_number(sijson_value_t value);
+const char *sijson_string(sijson_value_t value);
+
+/* Read arrays. */
+size_t sijson_array_len(sijson_value_t value);
+sijson_value_t sijson_array_get(sijson_value_t value, size_t index);
+
+/* Read objects. */
+size_t sijson_object_len(sijson_value_t value);
+const char *sijson_object_key(sijson_value_t value, size_t index);
+sijson_value_t sijson_object_get(sijson_value_t value, const char *key);
+
+/* Build dynamic JSON values in sijson's internal context. */
+sijson_value_t sijson_make_null(void);
+sijson_value_t sijson_make_bool(bool value);
+sijson_value_t sijson_make_number(double value);
+sijson_value_t sijson_make_string(const char *value);
+sijson_value_t sijson_make_array(void);
+sijson_value_t sijson_make_object(void);
+
+/* Mutate arrays and objects created as dynamic JSON values. */
+bool sijson_array_push(sijson_value_t array, sijson_value_t value);
+bool sijson_object_set(sijson_value_t object, const char *key, sijson_value_t value);
 
 /*
  * Serialize a value written as a compound initializer.
@@ -108,6 +165,20 @@ void *sijson_from_json_impl(
     sireflect_handle_t *ref,
     const sireflect_struct_desc_t *desc,
     const char *json
+);
+
+/*
+ * Free heap-owned fields inside a value produced by sijson_from_json.
+ *
+ * This does not free the struct pointer itself.
+ */
+#define sijson_free(type, ptr)                                                                     \
+    sijson_free_impl(&sijson_handle(type), &sireflect_desc(type), (ptr))
+
+void sijson_free_impl(
+    sireflect_handle_t *ref,
+    const sireflect_struct_desc_t *desc,
+    void *ptr
 );
 
 /*

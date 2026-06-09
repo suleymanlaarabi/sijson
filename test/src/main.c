@@ -9,12 +9,52 @@
 #include <test.h>
 
 // Testsuite 'simple'
-void simple_hello(void);
+void simple_dynamic_make(void);
+void simple_dynamic_parse(void);
+void simple_stringify(void);
+void simple_dynamic_errors(void);
+void simple_registry(void);
+void simple_typed_to_json(void);
+void simple_typed_from_json(void);
+void simple_typed_errors(void);
+void simple_typed_dynamic_value(void);
 
 bake_test_case simple_testcases[] = {
     {
-        "hello",
-        simple_hello
+        "dynamic_make",
+        simple_dynamic_make
+    },
+    {
+        "dynamic_parse",
+        simple_dynamic_parse
+    },
+    {
+        "stringify",
+        simple_stringify
+    },
+    {
+        "dynamic_errors",
+        simple_dynamic_errors
+    },
+    {
+        "registry",
+        simple_registry
+    },
+    {
+        "typed_to_json",
+        simple_typed_to_json
+    },
+    {
+        "typed_from_json",
+        simple_typed_from_json
+    },
+    {
+        "typed_errors",
+        simple_typed_errors
+    },
+    {
+        "typed_dynamic_value",
+        simple_typed_dynamic_value
     }
 };
 
@@ -24,7 +64,7 @@ static bake_test_suite suites[] = {
         "simple",
         NULL,
         NULL,
-        1,
+        9,
         simple_testcases
     }
 };

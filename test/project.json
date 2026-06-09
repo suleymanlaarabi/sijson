@@ -15,7 +15,15 @@
       {
         "id": "simple",
         "testcases": [
-          "hello"
+          "dynamic_make",
+          "dynamic_parse",
+          "stringify",
+          "dynamic_errors",
+          "registry",
+          "typed_to_json",
+          "typed_from_json",
+          "typed_errors",
+          "typed_dynamic_value"
         ]
       }
     ]
