@@ -124,7 +124,7 @@ bool sijson_object_set(sijson_value_t object, const char *key, sijson_value_t va
  *     char *json2 = sijson_to_json_ptr(Position, &pos);
  */
 #define sijson_to_json(type, ...)                                                                  \
-    sijson_to_json_impl(&sijson_handle(type), &sireflect_desc(type), &(type)__VA_ARGS__);
+    sijson_to_json_impl(&sijson_handle(type), &sireflect_desc(type), &(type)__VA_ARGS__)
 
 #define sijson_to_json_ptr(type, ptr) \
     sijson_to_json_impl(&sijson_handle(type), &sireflect_desc(type), (ptr))
