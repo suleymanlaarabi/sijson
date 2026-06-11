@@ -63,6 +63,12 @@ SIJSON_INTERNAL_API bool sijson_set_error_at(const char *message, const char *at
 SIJSON_INTERNAL_API char *sijson_dup_range(const char *start, size_t len);
 SIJSON_INTERNAL_API char *sijson_dup_cstr(const char *str);
 
+SIJSON_INTERNAL_API void *sijson_arena_alloc(size_t size, size_t align);
+SIJSON_INTERNAL_API char *sijson_arena_dup_range(const char *start, size_t len);
+SIJSON_INTERNAL_API char *sijson_arena_dup_cstr(const char *str);
+SIJSON_INTERNAL_API size_t sijson_arena_mark(void);
+SIJSON_INTERNAL_API void sijson_arena_rewind(size_t mark);
+
 SIJSON_INTERNAL_API bool sijson_reserve_array(sijson_array_t *array, size_t need);
 SIJSON_INTERNAL_API bool sijson_reserve_object(sijson_object_t *object, size_t need);
 SIJSON_INTERNAL_API sijson_value_t sijson_new_value(sijson_type_t type);

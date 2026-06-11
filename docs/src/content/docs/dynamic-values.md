@@ -97,10 +97,13 @@ sijson_array_push(tags, sijson_make_string("admin"));
 sijson_array_push(tags, sijson_make_string("beta"));
 sijson_object_set(user, "tags", tags);
 
-char *json = sijson_stringify(user);
+char *json = sijson_value_to_str(user);
 puts(json);
 free(json);
 ```
+
+Dynamic values live in the internal arena. Call `sijson_clean()` to invalidate
+the current values and reuse the arena memory for the next batch.
 
 ## Use dynamic fields in typed structs
 
@@ -120,4 +123,4 @@ sijson_free(Event, &event);
 ```
 
 `sijson_free` releases heap fields owned by the struct. Dynamic JSON values are
-owned by `sijson`'s internal context.
+owned by `sijson`'s internal arena.

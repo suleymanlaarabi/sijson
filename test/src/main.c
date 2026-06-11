@@ -10,6 +10,7 @@
 
 // Testsuite 'simple'
 void simple_dynamic_make(void);
+void simple_dynamic_arena(void);
 void simple_dynamic_parse(void);
 void simple_stringify(void);
 void simple_dynamic_errors(void);
@@ -23,6 +24,10 @@ bake_test_case simple_testcases[] = {
     {
         "dynamic_make",
         simple_dynamic_make
+    },
+    {
+        "dynamic_arena",
+        simple_dynamic_arena
     },
     {
         "dynamic_parse",
@@ -64,7 +69,7 @@ static bake_test_suite suites[] = {
         "simple",
         NULL,
         NULL,
-        9,
+        10,
         simple_testcases
     }
 };

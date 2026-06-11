@@ -197,7 +197,7 @@ bool sijson_write_value(sijson_writer_t *writer, sijson_value_t value) {
     return sijson_set_error("unknown JSON value type");
 }
 
-char *sijson_stringify(sijson_value_t value) {
+char *sijson_value_to_str(sijson_value_t value) {
     sijson_clear_error();
     sijson_writer_t writer = { 0 };
     if (!sijson_write_value(&writer, value)) {
@@ -208,4 +208,8 @@ char *sijson_stringify(sijson_value_t value) {
         return sijson_dup_cstr("");
     }
     return writer.data;
+}
+
+char *sijson_stringify(sijson_value_t value) {
+    return sijson_value_to_str(value);
 }

@@ -65,9 +65,11 @@ static char *sijson_parse_string_raw(sijson_parser_t *parser) {
             }
             parser->cur++;
             if (writer.data == NULL) {
-                return sijson_dup_cstr("");
+                return sijson_arena_dup_cstr("");
             }
-            return writer.data;
+            char *result = sijson_arena_dup_cstr(writer.data);
+            free(writer.data);
+            return result;
         }
 
         if (c < 0x20) {
@@ -221,19 +223,16 @@ static sijson_value_t sijson_parse_object_value(sijson_parser_t *parser) {
             return NULL;
         }
         if (!sijson_take(parser, ':')) {
-            free(key);
             sijson_set_error_at("expected ':'", parser->cur);
             return NULL;
         }
 
         sijson_value_t item = sijson_parse_value(parser);
         if (item == NULL) {
-            free(key);
             return NULL;
         }
 
         if (!sijson_reserve_object(&object->as.object, object->as.object.len + 1)) {
-            free(key);
             return NULL;
         }
         object->as.object.items[object->as.object.len++] = (sijson_member_t){
@@ -371,7 +370,6 @@ static sijson_value_t sijson_parse_value(sijson_parser_t *parser) {
         }
         sijson_value_t value = sijson_new_value(SIJSON_STRING);
         if (value == NULL) {
-            free(string);
             return NULL;
         }
         value->as.string = string;
@@ -397,15 +395,18 @@ sijson_value_t sijson_parse(const char *json) {
         return NULL;
     }
 
+    size_t mark = sijson_arena_mark();
     sijson_parser_t parser = { .cur = json };
     sijson_value_t value = sijson_parse_value(&parser);
     if (value == NULL) {
+        sijson_arena_rewind(mark);
         return NULL;
     }
 
     sijson_skip_ws(&parser);
     if (*parser.cur != '\0') {
         sijson_set_error_at("trailing characters after JSON value", parser.cur);
+        sijson_arena_rewind(mark);
         return NULL;
     }
 

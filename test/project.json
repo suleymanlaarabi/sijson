@@ -16,6 +16,7 @@
         "id": "simple",
         "testcases": [
           "dynamic_make",
+          "dynamic_arena",
           "dynamic_parse",
           "stringify",
           "dynamic_errors",

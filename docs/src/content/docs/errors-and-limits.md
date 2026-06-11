@@ -18,6 +18,7 @@ if (value == NULL) {
 | Operation | Failure result |
 | --- | --- |
 | `sijson_parse` | `NULL` |
+| `sijson_value_to_str` | `NULL` |
 | `sijson_stringify` | `NULL` |
 | `sijson_to_json` | `NULL` |
 | `sijson_to_json_ptr` | `NULL` |
@@ -87,7 +88,7 @@ These limits come from the current `sijson` and `sireflect` implementation:
 | Pointer types other than `char *` | Reflected as raw `ptr`, not enough for typed JSON. |
 | Packed structs and bitfields | Outside the supported `sireflect` layout subset. |
 | Non-finite numbers | JSON has no `NaN` or infinity values. |
-| Thread safety | The default registry and internal context are not synchronized. |
+| Thread safety | The default registry and internal arena are not synchronized. |
 
 ## Unknown JSON shape
 

@@ -51,6 +51,29 @@ void simple_dynamic_make(void) {
     test_str(sijson_string(sijson_array_get(tags, 1)), "json");
 }
 
+void simple_dynamic_arena(void) {
+    sijson_value_t root = sijson_make_object();
+    test_assert(sijson_object_set(root, "name", sijson_make_string("Ada")));
+
+    const char *name = sijson_string(sijson_object_get(root, "name"));
+    test_str(name, "Ada");
+
+    sijson_clean();
+
+    sijson_value_t next = sijson_make_object();
+    test_assert(sijson_object_set(next, "name", sijson_make_string("Bob")));
+    test_str(sijson_string(sijson_object_get(next, "name")), "Bob");
+
+    char *json = sijson_value_to_str(next);
+    test_null((void *)sijson_error());
+    test_str(json, "{\"name\":\"Bob\"}");
+    free(json);
+
+    sijson_release();
+    sijson_value_t after_release = sijson_make_string("fresh");
+    test_str(sijson_string(after_release), "fresh");
+}
+
 void simple_dynamic_parse(void) {
     sijson_value_t root = sijson_parse(
         "{"

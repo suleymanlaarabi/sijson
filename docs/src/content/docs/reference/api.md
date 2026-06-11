@@ -149,14 +149,28 @@ typedef enum sijson_type {
 
 ```c
 sijson_value_t sijson_parse(const char *json);
+char *sijson_value_to_str(sijson_value_t value);
 char *sijson_stringify(sijson_value_t value);
 ```
 
-`sijson_parse` returns a dynamic JSON value owned by `sijson`, or `NULL` on
-failure.
+`sijson_parse` returns a dynamic JSON value allocated in `sijson`'s internal
+arena, or `NULL` on failure.
 
-`sijson_stringify` returns a newly allocated JSON string owned by the caller, or
-`NULL` on failure.
+`sijson_value_to_str` returns a newly allocated JSON string owned by the caller,
+or `NULL` on failure. `sijson_stringify` is kept as an alias.
+
+## Dynamic arena lifetime
+
+```c
+void sijson_clean(void);
+void sijson_release(void);
+```
+
+`sijson_clean` invalidates every existing `sijson_value_t` and marks the
+internal arena memory as reusable.
+
+`sijson_release` invalidates every existing `sijson_value_t` and frees the
+internal arena storage.
 
 ## Inspect dynamic values
 
@@ -209,7 +223,7 @@ sijson_value_t sijson_make_array(void);
 sijson_value_t sijson_make_object(void);
 ```
 
-All dynamic values are owned by `sijson`'s internal context.
+All dynamic values are allocated in `sijson`'s internal arena.
 
 ## Errors
 

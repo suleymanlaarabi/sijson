@@ -102,7 +102,8 @@ sireflect_registry_t *sijson_default_registry(void);
  * Opaque handle for arbitrary JSON values.
  *
  * A sijson_value_t can hold null, bool, number, string, array, or object.
- * Values are owned by sijson's internal context unless documented otherwise.
+ * Values are allocated in sijson's internal arena unless documented otherwise.
+ * They stay valid until sijson_clean() or sijson_release().
  */
 typedef struct sijson_value *sijson_value_t;
 
@@ -118,11 +119,20 @@ typedef enum sijson_type {
 /*
  * Parse/stringify dynamic JSON without a reflected C type.
  *
- * sijson_parse returns a value owned by sijson's internal context.
- * sijson_stringify returns a newly allocated JSON string owned by the caller.
+ * sijson_parse returns a value allocated in sijson's internal arena.
+ * sijson_value_to_str returns a newly allocated JSON string owned by the caller.
  */
 sijson_value_t sijson_parse(const char *json);
+char *sijson_value_to_str(sijson_value_t value);
 char *sijson_stringify(sijson_value_t value);
+
+/*
+ * Reset or release the internal arena used by sijson_value_t values.
+ * sijson_clean keeps allocated capacity for reuse.
+ * sijson_release frees the arena storage.
+ */
+void sijson_clean(void);
+void sijson_release(void);
 
 /* Inspect a dynamic JSON value. */
 sijson_type_t sijson_type(sijson_value_t value);
@@ -141,7 +151,7 @@ size_t sijson_object_len(sijson_value_t value);
 const char *sijson_object_key(sijson_value_t value, size_t index);
 sijson_value_t sijson_object_get(sijson_value_t value, const char *key);
 
-/* Build dynamic JSON values in sijson's internal context. */
+/* Build dynamic JSON values in sijson's internal arena. */
 sijson_value_t sijson_make_null(void);
 sijson_value_t sijson_make_bool(bool value);
 sijson_value_t sijson_make_number(double value);
@@ -164,7 +174,7 @@ bool sijson_object_set(sijson_value_t object, const char *key, sijson_value_t va
  *     char *json2 = sijson_to_json_ptr(Position, &pos);
  */
 #define sijson_to_json(type, ...)                                                                  \
-    sijson_to_json_impl(&sijson_handle(type), &sireflect_desc(type), &(type)__VA_ARGS__);
+    sijson_to_json_impl(&sijson_handle(type), &sireflect_desc(type), &(type)__VA_ARGS__)
 
 #define sijson_to_json_ptr(type, ptr) \
     sijson_to_json_impl(&sijson_handle(type), &sireflect_desc(type), (ptr))

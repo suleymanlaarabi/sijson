@@ -13,7 +13,7 @@
 -fstack-protector-all
 -DBAKE_PROJECT_ID="sijson"
 -Dsijson_EXPORTS
--I/home/suleyman/cjson/src
--I/home/suleyman/cjson/include
+-I./src
+-I./include
 -I
 /home/suleyman/bake/include

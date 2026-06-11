@@ -62,6 +62,12 @@ SIJSON_INTERNAL_API bool sijson_set_error_at(const char *message, const char *at
 SIJSON_INTERNAL_API char *sijson_dup_range(const char *start, size_t len);
 SIJSON_INTERNAL_API char *sijson_dup_cstr(const char *str);
 
+SIJSON_INTERNAL_API void *sijson_arena_alloc(size_t size, size_t align);
+SIJSON_INTERNAL_API char *sijson_arena_dup_range(const char *start, size_t len);
+SIJSON_INTERNAL_API char *sijson_arena_dup_cstr(const char *str);
+SIJSON_INTERNAL_API size_t sijson_arena_mark(void);
+SIJSON_INTERNAL_API void sijson_arena_rewind(size_t mark);
+
 SIJSON_INTERNAL_API bool sijson_reserve_array(sijson_array_t *array, size_t need);
 SIJSON_INTERNAL_API bool sijson_reserve_object(sijson_object_t *object, size_t need);
 SIJSON_INTERNAL_API sijson_value_t sijson_new_value(sijson_type_t type);
@@ -164,9 +170,11 @@ static char *sijson_parse_string_raw(sijson_parser_t *parser) {
             }
             parser->cur++;
             if (writer.data == NULL) {
-                return sijson_dup_cstr("");
+                return sijson_arena_dup_cstr("");
             }
-            return writer.data;
+            char *result = sijson_arena_dup_cstr(writer.data);
+            free(writer.data);
+            return result;
         }
 
         if (c < 0x20) {
@@ -320,19 +328,16 @@ static sijson_value_t sijson_parse_object_value(sijson_parser_t *parser) {
             return NULL;
         }
         if (!sijson_take(parser, ':')) {
-            free(key);
             sijson_set_error_at("expected ':'", parser->cur);
             return NULL;
         }
 
         sijson_value_t item = sijson_parse_value(parser);
         if (item == NULL) {
-            free(key);
             return NULL;
         }
 
         if (!sijson_reserve_object(&object->as.object, object->as.object.len + 1)) {
-            free(key);
             return NULL;
         }
         object->as.object.items[object->as.object.len++] = (sijson_member_t){
@@ -470,7 +475,6 @@ static sijson_value_t sijson_parse_value(sijson_parser_t *parser) {
         }
         sijson_value_t value = sijson_new_value(SIJSON_STRING);
         if (value == NULL) {
-            free(string);
             return NULL;
         }
         value->as.string = string;
@@ -496,15 +500,18 @@ sijson_value_t sijson_parse(const char *json) {
         return NULL;
     }
 
+    size_t mark = sijson_arena_mark();
     sijson_parser_t parser = { .cur = json };
     sijson_value_t value = sijson_parse_value(&parser);
     if (value == NULL) {
+        sijson_arena_rewind(mark);
         return NULL;
     }
 
     sijson_skip_ws(&parser);
     if (*parser.cur != '\0') {
         sijson_set_error_at("trailing characters after JSON value", parser.cur);
+        sijson_arena_rewind(mark);
         return NULL;
     }
 
@@ -948,6 +955,175 @@ void sijson_free_impl(sireflect_handle_t *ref, const sireflect_struct_desc_t *de
     sijson_free_reflected(type, ptr);
 }
 
+#if defined(__unix__) || defined(__APPLE__)
+#include <sys/mman.h>
+#include <unistd.h>
+#endif
+
+#ifndef SIJSON_ARENA_RESERVE
+#define SIJSON_ARENA_RESERVE ((size_t)1 << 30)
+#endif
+
+#ifndef SIJSON_ARENA_FALLBACK_RESERVE
+#define SIJSON_ARENA_FALLBACK_RESERVE ((size_t)1 << 20)
+#endif
+
+typedef struct sijson_arena {
+    unsigned char *data;
+    size_t used;
+    size_t cap;
+    size_t reserve;
+    bool mmap_backed;
+} sijson_arena_t;
+
+static sijson_arena_t g_arena;
+
+static size_t sijson_align_forward(size_t value, size_t align) {
+    size_t mask = align - 1;
+    return (value + mask) & ~mask;
+}
+
+static size_t sijson_page_size(void) {
+#if defined(__unix__) || defined(__APPLE__)
+    long page = sysconf(_SC_PAGESIZE);
+    if (page > 0) {
+        return (size_t)page;
+    }
+#endif
+    return 4096;
+}
+
+static bool sijson_arena_init(size_t need) {
+    if (g_arena.data != NULL) {
+        return true;
+    }
+
+    size_t page_size = sijson_page_size();
+    size_t reserve = SIJSON_ARENA_RESERVE;
+    if (reserve < need) {
+        reserve = sijson_align_forward(need, page_size);
+    }
+
+#if defined(__unix__) || defined(__APPLE__)
+    void *data = mmap(NULL, reserve, PROT_NONE, MAP_PRIVATE | MAP_ANONYMOUS, -1, 0);
+    if (data != MAP_FAILED) {
+        g_arena.data = data;
+        g_arena.reserve = reserve;
+        g_arena.mmap_backed = true;
+        return true;
+    }
+#endif
+
+    size_t fallback_reserve = reserve;
+    if (need <= SIJSON_ARENA_FALLBACK_RESERVE && fallback_reserve > SIJSON_ARENA_FALLBACK_RESERVE) {
+        fallback_reserve = SIJSON_ARENA_FALLBACK_RESERVE;
+    }
+
+    g_arena.data = malloc(fallback_reserve);
+    if (g_arena.data == NULL) {
+        sijson_set_error("out of memory");
+        return false;
+    }
+    g_arena.cap = fallback_reserve;
+    g_arena.reserve = fallback_reserve;
+    return true;
+}
+
+static bool sijson_arena_commit(size_t need) {
+    if (!sijson_arena_init(need)) {
+        return false;
+    }
+    if (need <= g_arena.cap) {
+        return true;
+    }
+    if (need > g_arena.reserve) {
+        return sijson_set_error("sijson arena capacity exceeded");
+    }
+
+    size_t page_size = sijson_page_size();
+    size_t cap = sijson_align_forward(need, page_size);
+
+    if (g_arena.mmap_backed) {
+#if defined(__unix__) || defined(__APPLE__)
+        if (mprotect(g_arena.data + g_arena.cap, cap - g_arena.cap, PROT_READ | PROT_WRITE) != 0) {
+            return sijson_set_error("out of memory");
+        }
+#else
+        return sijson_set_error("sijson arena backend unavailable");
+#endif
+    }
+
+    g_arena.cap = cap;
+    return true;
+}
+
+void *sijson_arena_alloc(size_t size, size_t align) {
+    if (align == 0) {
+        align = _Alignof(max_align_t);
+    }
+
+    size_t offset = sijson_align_forward(g_arena.used, align);
+    if (offset < g_arena.used || size > SIZE_MAX - offset) {
+        sijson_set_error("out of memory");
+        return NULL;
+    }
+
+    size_t need = offset + size;
+    if (!sijson_arena_commit(need)) {
+        return NULL;
+    }
+
+    void *ptr = g_arena.data + offset;
+    g_arena.used = need;
+    return ptr;
+}
+
+char *sijson_arena_dup_range(const char *start, size_t len) {
+    char *result = sijson_arena_alloc(len + 1, _Alignof(char));
+    if (result == NULL) {
+        return NULL;
+    }
+
+    memcpy(result, start, len);
+    result[len] = '\0';
+    return result;
+}
+
+char *sijson_arena_dup_cstr(const char *str) {
+    if (str == NULL) {
+        return NULL;
+    }
+
+    return sijson_arena_dup_range(str, strlen(str));
+}
+
+size_t sijson_arena_mark(void) {
+    return g_arena.used;
+}
+
+void sijson_arena_rewind(size_t mark) {
+    if (mark <= g_arena.used) {
+        g_arena.used = mark;
+    }
+}
+
+void sijson_clean(void) {
+    sijson_clear_error();
+    g_arena.used = 0;
+}
+
+void sijson_release(void) {
+    sijson_clear_error();
+    if (g_arena.mmap_backed) {
+#if defined(__unix__) || defined(__APPLE__)
+        munmap(g_arena.data, g_arena.reserve);
+#endif
+    } else {
+        free(g_arena.data);
+    }
+    g_arena = (sijson_arena_t){ 0 };
+}
+
 char *sijson_dup_range(const char *start, size_t len) {
     char *result = malloc(len + 1);
     if (result == NULL) {
@@ -978,9 +1154,12 @@ bool sijson_reserve_array(sijson_array_t *array, size_t need) {
         cap *= 2;
     }
 
-    sijson_value_t *items = realloc(array->items, cap * sizeof(*items));
+    sijson_value_t *items = sijson_arena_alloc(cap * sizeof(*items), _Alignof(sijson_value_t));
     if (items == NULL) {
-        return sijson_set_error("out of memory");
+        return false;
+    }
+    if (array->items != NULL) {
+        memcpy(items, array->items, array->len * sizeof(*items));
     }
 
     array->items = items;
@@ -998,9 +1177,12 @@ bool sijson_reserve_object(sijson_object_t *object, size_t need) {
         cap *= 2;
     }
 
-    sijson_member_t *items = realloc(object->items, cap * sizeof(*items));
+    sijson_member_t *items = sijson_arena_alloc(cap * sizeof(*items), _Alignof(sijson_member_t));
     if (items == NULL) {
-        return sijson_set_error("out of memory");
+        return false;
+    }
+    if (object->items != NULL) {
+        memcpy(items, object->items, object->len * sizeof(*items));
     }
 
     object->items = items;
@@ -1009,12 +1191,12 @@ bool sijson_reserve_object(sijson_object_t *object, size_t need) {
 }
 
 sijson_value_t sijson_new_value(sijson_type_t type) {
-    sijson_value_t value = calloc(1, sizeof(*value));
+    sijson_value_t value = sijson_arena_alloc(sizeof(*value), _Alignof(struct sijson_value));
     if (value == NULL) {
-        sijson_set_error("out of memory");
         return NULL;
     }
 
+    memset(value, 0, sizeof(*value));
     value->type = type;
     return value;
 }
@@ -1049,9 +1231,8 @@ sijson_value_t sijson_make_string(const char *value) {
         return NULL;
     }
 
-    result->as.string = sijson_dup_cstr(value != NULL ? value : "");
+    result->as.string = sijson_arena_dup_cstr(value != NULL ? value : "");
     if (result->as.string == NULL) {
-        free(result);
         return NULL;
     }
 
@@ -1156,7 +1337,7 @@ bool sijson_object_set(sijson_value_t object, const char *key, sijson_value_t va
         return false;
     }
 
-    char *owned_key = sijson_dup_cstr(key);
+    char *owned_key = sijson_arena_dup_cstr(key);
     if (owned_key == NULL) {
         return false;
     }
@@ -1365,7 +1546,7 @@ bool sijson_write_value(sijson_writer_t *writer, sijson_value_t value) {
     return sijson_set_error("unknown JSON value type");
 }
 
-char *sijson_stringify(sijson_value_t value) {
+char *sijson_value_to_str(sijson_value_t value) {
     sijson_clear_error();
     sijson_writer_t writer = { 0 };
     if (!sijson_write_value(&writer, value)) {
@@ -1376,5 +1557,9 @@ char *sijson_stringify(sijson_value_t value) {
         return sijson_dup_cstr("");
     }
     return writer.data;
+}
+
+char *sijson_stringify(sijson_value_t value) {
+    return sijson_value_to_str(value);
 }
 
