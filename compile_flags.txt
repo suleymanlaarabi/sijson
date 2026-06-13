@@ -1,5 +1,7 @@
 -fPIC
 -g
+-fprofile-arcs
+-ftest-coverage
 -O0
 -std=c23
 
@@ -13,7 +15,7 @@
 -fstack-protector-all
 -DBAKE_PROJECT_ID="sijson"
 -Dsijson_EXPORTS
--I./src
--I./include
+-I/home/suleyman/projects/sijson/src
+-I/home/suleyman/projects/sijson/include
 -I
 /home/suleyman/bake/include
