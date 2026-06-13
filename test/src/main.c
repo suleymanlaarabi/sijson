@@ -19,6 +19,13 @@ void simple_typed_to_json(void);
 void simple_typed_from_json(void);
 void simple_typed_errors(void);
 void simple_typed_dynamic_value(void);
+void simple_typed_array_to_json_numbers(void);
+void simple_typed_array_from_json_numbers(void);
+void simple_typed_array_roundtrip_matrix(void);
+void simple_typed_array_of_structs(void);
+void simple_typed_array_of_strings(void);
+void simple_typed_array_rejects_wrong_length(void);
+void simple_typed_array_rejects_wrong_type(void);
 
 bake_test_case simple_testcases[] = {
     {
@@ -60,6 +67,34 @@ bake_test_case simple_testcases[] = {
     {
         "typed_dynamic_value",
         simple_typed_dynamic_value
+    },
+    {
+        "typed_array_to_json_numbers",
+        simple_typed_array_to_json_numbers
+    },
+    {
+        "typed_array_from_json_numbers",
+        simple_typed_array_from_json_numbers
+    },
+    {
+        "typed_array_roundtrip_matrix",
+        simple_typed_array_roundtrip_matrix
+    },
+    {
+        "typed_array_of_structs",
+        simple_typed_array_of_structs
+    },
+    {
+        "typed_array_of_strings",
+        simple_typed_array_of_strings
+    },
+    {
+        "typed_array_rejects_wrong_length",
+        simple_typed_array_rejects_wrong_length
+    },
+    {
+        "typed_array_rejects_wrong_type",
+        simple_typed_array_rejects_wrong_type
     }
 };
 
@@ -69,7 +104,7 @@ static bake_test_suite suites[] = {
         "simple",
         NULL,
         NULL,
-        10,
+        17,
         simple_testcases
     }
 };

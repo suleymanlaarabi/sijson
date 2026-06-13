@@ -566,6 +566,21 @@ static bool sijson_is_value_type(const sireflect_type_info_t *type) {
            type->size == sizeof(sijson_value_t);
 }
 
+static bool sijson_is_char_pointer_type(const sireflect_type_info_t *type) {
+    if (type == NULL) {
+        return false;
+    }
+    if (type->kind == sireflect_kind_ptr) {
+        return true;
+    }
+    if (type->kind != sireflect_kind_pointer) {
+        return false;
+    }
+
+    const sireflect_type_info_t *pointee = sireflect_type_info(g_registry, type->element_type);
+    return pointee != NULL && pointee->kind == sireflect_kind_char;
+}
+
 static bool
 sijson_write_reflected(sijson_writer_t *writer, sireflect_handle_t type, const void *ptr);
 
@@ -573,7 +588,50 @@ static bool sijson_write_reflected_field(
     sijson_writer_t *writer,
     const sireflect_type_info_t *field_type,
     const void *field_ptr
+);
+
+static bool sijson_write_reflected_array(
+    sijson_writer_t *writer,
+    const sireflect_type_info_t *array_type,
+    const void *array_ptr
 ) {
+    if (array_type == NULL || array_type->kind != sireflect_kind_array) {
+        return sijson_set_error("expected reflected array type");
+    }
+
+    const sireflect_type_info_t *element_type =
+        sireflect_type_info(g_registry, array_type->element_type);
+    if (element_type == NULL || element_type->size == 0) {
+        return sijson_set_error("missing reflected array element type");
+    }
+
+    if (!sijson_writer_putc(writer, '[')) {
+        return false;
+    }
+
+    for (size_t i = 0; i < array_type->element_count; i++) {
+        const void *element_ptr = (const unsigned char *)array_ptr + i * element_type->size;
+
+        if (i != 0 && !sijson_writer_putc(writer, ',')) {
+            return false;
+        }
+        if (!sijson_write_reflected_field(writer, element_type, element_ptr)) {
+            return false;
+        }
+    }
+
+    return sijson_writer_putc(writer, ']');
+}
+
+static bool sijson_write_reflected_field(
+    sijson_writer_t *writer,
+    const sireflect_type_info_t *field_type,
+    const void *field_ptr
+) {
+    if (field_type == NULL) {
+        return sijson_set_error("missing reflected field type");
+    }
+
     switch (field_type->kind) {
     case sireflect_kind_bool:
         return sijson_writer_cstr(writer, *(const bool *)field_ptr ? "true" : "false");
@@ -626,6 +684,11 @@ static bool sijson_write_reflected_field(
         return sijson_writer_string(writer, (char[2]){ *(const char *)field_ptr, '\0' });
     case sireflect_kind_ptr:
         return sijson_writer_string(writer, *(char *const *)field_ptr);
+    case sireflect_kind_pointer:
+        if (sijson_is_char_pointer_type(field_type)) {
+            return sijson_writer_string(writer, *(char *const *)field_ptr);
+        }
+        break;
     case sireflect_kind_struct:
         if (sijson_is_value_type(field_type)) {
             return sijson_write_value(writer, *(const sijson_value_t *)field_ptr);
@@ -635,6 +698,8 @@ static bool sijson_write_reflected_field(
             sireflect_type_by_name(g_registry, field_type->name),
             field_ptr
         );
+    case sireflect_kind_array:
+        return sijson_write_reflected_array(writer, field_type, field_ptr);
     case sireflect_kind_bool:
         break;
     }
@@ -797,7 +862,48 @@ static bool sijson_assign_field(
     const sireflect_type_info_t *field_type,
     void *field_ptr,
     sijson_value_t value
+);
+
+static bool sijson_assign_array(
+    const sireflect_type_info_t *array_type,
+    void *array_ptr,
+    sijson_value_t value
 ) {
+    if (array_type == NULL || array_type->kind != sireflect_kind_array) {
+        return sijson_set_error("expected reflected array type");
+    }
+    if (value == NULL || value->type != SIJSON_ARRAY) {
+        return sijson_set_error("expected JSON array");
+    }
+    if (value->as.array.len != array_type->element_count) {
+        return sijson_set_error("JSON array length does not match reflected array");
+    }
+
+    const sireflect_type_info_t *element_type =
+        sireflect_type_info(g_registry, array_type->element_type);
+    if (element_type == NULL || element_type->size == 0) {
+        return sijson_set_error("missing reflected array element type");
+    }
+
+    for (size_t i = 0; i < array_type->element_count; i++) {
+        void *element_ptr = (unsigned char *)array_ptr + i * element_type->size;
+        if (!sijson_assign_field(element_type, element_ptr, value->as.array.items[i])) {
+            return false;
+        }
+    }
+
+    return true;
+}
+
+static bool sijson_assign_field(
+    const sireflect_type_info_t *field_type,
+    void *field_ptr,
+    sijson_value_t value
+) {
+    if (field_type == NULL) {
+        return sijson_set_error("missing reflected field type");
+    }
+
     switch (field_type->kind) {
     case sireflect_kind_bool:
         if (value == NULL || value->type != SIJSON_BOOL) {
@@ -826,6 +932,10 @@ static bool sijson_assign_field(
         *(char *)field_ptr = value->as.string[0];
         return true;
     case sireflect_kind_ptr:
+    case sireflect_kind_pointer:
+        if (!sijson_is_char_pointer_type(field_type)) {
+            break;
+        }
         if (value == NULL || value->type == SIJSON_NULL) {
             *(char **)field_ptr = NULL;
             return true;
@@ -845,6 +955,8 @@ static bool sijson_assign_field(
             field_ptr,
             value
         );
+    case sireflect_kind_array:
+        return sijson_assign_array(field_type, field_ptr, value);
     }
 
     return sijson_set_error("unsupported field type for deserialization");
@@ -921,6 +1033,8 @@ void *sijson_from_json_impl(
     return g_from_json_buffer;
 }
 
+static void sijson_free_reflected_field(const sireflect_type_info_t *field_type, void *field_ptr);
+
 static void sijson_free_reflected(sireflect_handle_t type, void *ptr) {
     if (ptr == NULL) {
         return;
@@ -937,12 +1051,59 @@ static void sijson_free_reflected(sireflect_handle_t type, void *ptr) {
         const sireflect_type_info_t *field_type = sireflect_type_info(g_registry, field->type);
         void *field_ptr = (unsigned char *)ptr + field->offset;
 
-        if (field_type->kind == sireflect_kind_ptr) {
+        sijson_free_reflected_field(field_type, field_ptr);
+    }
+}
+
+static void sijson_free_reflected_field(const sireflect_type_info_t *field_type, void *field_ptr) {
+    if (field_type == NULL || field_ptr == NULL) {
+        return;
+    }
+
+    switch (field_type->kind) {
+    case sireflect_kind_ptr:
+        free(*(void **)field_ptr);
+        *(void **)field_ptr = NULL;
+        return;
+    case sireflect_kind_pointer:
+        if (sijson_is_char_pointer_type(field_type)) {
             free(*(void **)field_ptr);
             *(void **)field_ptr = NULL;
-        } else if (field_type->kind == sireflect_kind_struct && !sijson_is_value_type(field_type)) {
+        }
+        return;
+    case sireflect_kind_struct:
+        if (!sijson_is_value_type(field_type)) {
             sijson_free_reflected(sireflect_type_by_name(g_registry, field_type->name), field_ptr);
         }
+        return;
+    case sireflect_kind_array: {
+        const sireflect_type_info_t *element_type =
+            sireflect_type_info(g_registry, field_type->element_type);
+        if (element_type == NULL || element_type->size == 0) {
+            return;
+        }
+        for (size_t i = 0; i < field_type->element_count; i++) {
+            void *element_ptr = (unsigned char *)field_ptr + i * element_type->size;
+            sijson_free_reflected_field(element_type, element_ptr);
+        }
+        return;
+    }
+    case sireflect_kind_u8:
+    case sireflect_kind_u16:
+    case sireflect_kind_u32:
+    case sireflect_kind_u64:
+    case sireflect_kind_i8:
+    case sireflect_kind_i16:
+    case sireflect_kind_i32:
+    case sireflect_kind_i64:
+    case sireflect_kind_f32:
+    case sireflect_kind_f64:
+    case sireflect_kind_bool:
+    case sireflect_kind_char:
+    case sireflect_kind_short:
+    case sireflect_kind_int:
+    case sireflect_kind_long:
+        return;
     }
 }
 
