@@ -31,7 +31,10 @@
           "typed_array_of_structs",
           "typed_array_of_strings",
           "typed_array_rejects_wrong_length",
-          "typed_array_rejects_wrong_type"
+          "typed_array_rejects_wrong_type",
+          "typed_native_aliases_to_json",
+          "typed_native_aliases_from_json",
+          "typed_native_aliases_reject_range"
         ]
       }
     ]

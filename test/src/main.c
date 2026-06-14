@@ -26,6 +26,9 @@ void simple_typed_array_of_structs(void);
 void simple_typed_array_of_strings(void);
 void simple_typed_array_rejects_wrong_length(void);
 void simple_typed_array_rejects_wrong_type(void);
+void simple_typed_native_aliases_to_json(void);
+void simple_typed_native_aliases_from_json(void);
+void simple_typed_native_aliases_reject_range(void);
 
 bake_test_case simple_testcases[] = {
     {
@@ -95,6 +98,18 @@ bake_test_case simple_testcases[] = {
     {
         "typed_array_rejects_wrong_type",
         simple_typed_array_rejects_wrong_type
+    },
+    {
+        "typed_native_aliases_to_json",
+        simple_typed_native_aliases_to_json
+    },
+    {
+        "typed_native_aliases_from_json",
+        simple_typed_native_aliases_from_json
+    },
+    {
+        "typed_native_aliases_reject_range",
+        simple_typed_native_aliases_reject_range
     }
 };
 
@@ -104,7 +119,7 @@ static bake_test_suite suites[] = {
         "simple",
         NULL,
         NULL,
-        17,
+        20,
         simple_testcases
     }
 };

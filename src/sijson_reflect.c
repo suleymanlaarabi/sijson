@@ -1,5 +1,7 @@
 #include "sijson_internal.h"
 
+#include <limits.h>
+
 static sireflect_registry_t *g_registry;
 static void *g_from_json_buffer;
 static size_t g_from_json_capacity;
@@ -123,14 +125,26 @@ static bool sijson_write_reflected_field(
 
     char number[64];
     switch (field_type->kind) {
+    case sireflect_kind_signed_char:
+        snprintf(number, sizeof(number), "%d", (int)*(const signed char *)field_ptr);
+        return sijson_writer_cstr(writer, number);
+    case sireflect_kind_unsigned_char:
+        snprintf(number, sizeof(number), "%u", (unsigned)*(const unsigned char *)field_ptr);
+        return sijson_writer_cstr(writer, number);
     case sireflect_kind_u8:
         snprintf(number, sizeof(number), "%u", (unsigned)*(const u8 *)field_ptr);
         return sijson_writer_cstr(writer, number);
     case sireflect_kind_u16:
         snprintf(number, sizeof(number), "%u", (unsigned)*(const u16 *)field_ptr);
         return sijson_writer_cstr(writer, number);
+    case sireflect_kind_unsigned_short:
+        snprintf(number, sizeof(number), "%u", (unsigned)*(const unsigned short *)field_ptr);
+        return sijson_writer_cstr(writer, number);
     case sireflect_kind_u32:
         snprintf(number, sizeof(number), "%u", *(const u32 *)field_ptr);
+        return sijson_writer_cstr(writer, number);
+    case sireflect_kind_unsigned_int:
+        snprintf(number, sizeof(number), "%u", *(const unsigned int *)field_ptr);
         return sijson_writer_cstr(writer, number);
     case sireflect_kind_u64:
         snprintf(number, sizeof(number), "%llu", (unsigned long long)*(const u64 *)field_ptr);
@@ -155,6 +169,15 @@ static bool sijson_write_reflected_field(
         return sijson_writer_cstr(writer, number);
     case sireflect_kind_long:
         snprintf(number, sizeof(number), "%ld", *(const long *)field_ptr);
+        return sijson_writer_cstr(writer, number);
+    case sireflect_kind_unsigned_long:
+        snprintf(number, sizeof(number), "%lu", *(const unsigned long *)field_ptr);
+        return sijson_writer_cstr(writer, number);
+    case sireflect_kind_long_long:
+        snprintf(number, sizeof(number), "%lld", *(const long long *)field_ptr);
+        return sijson_writer_cstr(writer, number);
+    case sireflect_kind_unsigned_long_long:
+        snprintf(number, sizeof(number), "%llu", *(const unsigned long long *)field_ptr);
         return sijson_writer_cstr(writer, number);
     case sireflect_kind_f32:
         snprintf(number, sizeof(number), "%.9g", (double)*(const f32 *)field_ptr);
@@ -261,6 +284,18 @@ static bool sijson_assign_number(
 
     double number = value->as.number;
     switch (field_type->kind) {
+    case sireflect_kind_signed_char:
+        if (!sijson_number_is_integer(number) || number < SCHAR_MIN || number > SCHAR_MAX) {
+            return sijson_set_error("number out of range for signed char");
+        }
+        *(signed char *)field_ptr = (signed char)number;
+        return true;
+    case sireflect_kind_unsigned_char:
+        if (!sijson_number_is_integer(number) || number < 0 || number > UCHAR_MAX) {
+            return sijson_set_error("number out of range for unsigned char");
+        }
+        *(unsigned char *)field_ptr = (unsigned char)number;
+        return true;
     case sireflect_kind_u8:
         if (!sijson_number_is_integer(number) || number < 0 || number > UINT8_MAX) {
             return sijson_set_error("number out of range for u8");
@@ -273,11 +308,23 @@ static bool sijson_assign_number(
         }
         *(u16 *)field_ptr = (u16)number;
         return true;
+    case sireflect_kind_unsigned_short:
+        if (!sijson_number_is_integer(number) || number < 0 || number > USHRT_MAX) {
+            return sijson_set_error("number out of range for unsigned short");
+        }
+        *(unsigned short *)field_ptr = (unsigned short)number;
+        return true;
     case sireflect_kind_u32:
         if (!sijson_number_is_integer(number) || number < 0 || number > UINT32_MAX) {
             return sijson_set_error("number out of range for u32");
         }
         *(u32 *)field_ptr = (u32)number;
+        return true;
+    case sireflect_kind_unsigned_int:
+        if (!sijson_number_is_integer(number) || number < 0 || number > UINT_MAX) {
+            return sijson_set_error("number out of range for unsigned int");
+        }
+        *(unsigned int *)field_ptr = (unsigned int)number;
         return true;
     case sireflect_kind_u64:
         if (!sijson_number_is_integer(number) || number < 0) {
@@ -326,6 +373,24 @@ static bool sijson_assign_number(
             return sijson_set_error("expected integer for long");
         }
         *(long *)field_ptr = (long)number;
+        return true;
+    case sireflect_kind_unsigned_long:
+        if (!sijson_number_is_integer(number) || number < 0) {
+            return sijson_set_error("number out of range for unsigned long");
+        }
+        *(unsigned long *)field_ptr = (unsigned long)number;
+        return true;
+    case sireflect_kind_long_long:
+        if (!sijson_number_is_integer(number)) {
+            return sijson_set_error("number out of range for long long");
+        }
+        *(long long *)field_ptr = (long long)number;
+        return true;
+    case sireflect_kind_unsigned_long_long:
+        if (!sijson_number_is_integer(number) || number < 0) {
+            return sijson_set_error("number out of range for unsigned long long");
+        }
+        *(unsigned long long *)field_ptr = (unsigned long long)number;
         return true;
     case sireflect_kind_f32:
         *(f32 *)field_ptr = (f32)number;
@@ -393,6 +458,8 @@ static bool sijson_assign_field(
         }
         *(bool *)field_ptr = value->as.boolean;
         return true;
+    case sireflect_kind_signed_char:
+    case sireflect_kind_unsigned_char:
     case sireflect_kind_u8:
     case sireflect_kind_u16:
     case sireflect_kind_u32:
@@ -401,9 +468,14 @@ static bool sijson_assign_field(
     case sireflect_kind_i16:
     case sireflect_kind_i32:
     case sireflect_kind_i64:
+    case sireflect_kind_unsigned_short:
     case sireflect_kind_short:
+    case sireflect_kind_unsigned_int:
     case sireflect_kind_int:
+    case sireflect_kind_unsigned_long:
     case sireflect_kind_long:
+    case sireflect_kind_long_long:
+    case sireflect_kind_unsigned_long_long:
     case sireflect_kind_f32:
     case sireflect_kind_f64:
         return sijson_assign_number(field_type, field_ptr, value);
@@ -578,6 +650,13 @@ static void sijson_free_reflected_field(const sireflect_type_info_t *field_type,
     case sireflect_kind_i16:
     case sireflect_kind_i32:
     case sireflect_kind_i64:
+    case sireflect_kind_signed_char:
+    case sireflect_kind_unsigned_char:
+    case sireflect_kind_unsigned_short:
+    case sireflect_kind_unsigned_int:
+    case sireflect_kind_unsigned_long:
+    case sireflect_kind_long_long:
+    case sireflect_kind_unsigned_long_long:
     case sireflect_kind_f32:
     case sireflect_kind_f64:
     case sireflect_kind_bool:
