@@ -13,28 +13,43 @@
   "test": {
     "testsuites": [
       {
-        "id": "simple",
+        "id": "dynamic",
         "testcases": [
-          "dynamic_make",
-          "dynamic_arena",
-          "dynamic_parse",
+          "make",
+          "arena",
+          "parse",
           "stringify",
-          "dynamic_errors",
-          "registry",
-          "typed_to_json",
-          "typed_from_json",
-          "typed_errors",
-          "typed_dynamic_value",
-          "typed_array_to_json_numbers",
-          "typed_array_from_json_numbers",
-          "typed_array_roundtrip_matrix",
-          "typed_array_of_structs",
-          "typed_array_of_strings",
-          "typed_array_rejects_wrong_length",
-          "typed_array_rejects_wrong_type",
-          "typed_native_aliases_to_json",
-          "typed_native_aliases_from_json",
-          "typed_native_aliases_reject_range"
+          "errors",
+          "registry"
+        ]
+      },
+      {
+        "id": "typed",
+        "testcases": [
+          "to_json",
+          "from_json",
+          "errors",
+          "dynamic_value"
+        ]
+      },
+      {
+        "id": "typed_array",
+        "testcases": [
+          "to_json_numbers",
+          "from_json_numbers",
+          "roundtrip_matrix",
+          "of_structs",
+          "of_strings",
+          "rejects_wrong_length",
+          "rejects_wrong_type"
+        ]
+      },
+      {
+        "id": "typed_native_aliases",
+        "testcases": [
+          "to_json",
+          "from_json",
+          "reject_range"
         ]
       }
     ]
