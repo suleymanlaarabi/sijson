@@ -1,7 +1,7 @@
 ![SIJSON](docs/assets/banner.png)
 
 [![Documentation](https://img.shields.io/badge/docs-sijson-blue?style=for-the-badge&color=blue)](https://suleymanlaarabi.github.io/sijson/)
-[![actions](https://img.shields.io/github/actions/workflow/status/suleymanlaarabi/sijson/docs.yml?branch=main&style=for-the-badge)](https://github.com/suleymanlaarabi/sijson/actions?query=workflow%3ACI)
+[![actions](https://img.shields.io/github/actions/workflow/status/suleymanlaarabi/sijson/ci.yml?branch=main&style=for-the-badge)](https://github.com/suleymanlaarabi/sijson/actions?query=workflow%3ACI)
 
 `sijson` is a small JSON serialization and deserialization library for modern C23.
 
