@@ -77,10 +77,6 @@ sijson_clean();
 
 Dynamic values are stored in `sijson`'s internal arena. Call `sijson_clean()` to reuse the arena, or `sijson_release()` to free it.
 
-## Installation
-
-The repository provides amalgamated distribution files in `distr/`.
-
 ## Documentation
 
 - [Documentation](https://suleymanlaarabi.github.io/sijson/)
@@ -88,3 +84,25 @@ The repository provides amalgamated distribution files in `distr/`.
 - [Dynamic Values](https://suleymanlaarabi.github.io/sijson/dynamic-values/)
 - [Memory Model](https://suleymanlaarabi.github.io/sijson/memory-model/)
 - [API Reference](https://suleymanlaarabi.github.io/sijson/reference/api/)
+
+
+## Bake Example
+
+C
+```json
+{
+  "id": "my_app",
+  "type": "application",
+  "value": {
+    "use": ["sijson"]
+  },
+  "lang.c": {
+    "c-standard": "c23"
+  },
+  "bundle": {
+    "repositories": {
+      "sijson": "https://github.com/suleymanlaarabi/sijson"
+    }
+  }
+}
+```
