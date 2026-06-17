@@ -19,7 +19,7 @@ if (value == NULL) {
 | --- | --- |
 | `sijson_parse` | `NULL` |
 | `sijson_value_to_str` | `NULL` |
-| `sijson_stringify` | `NULL` |
+| `sijson_value_to_str` | `NULL` |
 | `sijson_to_json` | `NULL` |
 | `sijson_to_json_ptr` | `NULL` |
 | `sijson_from_json_impl` | `NULL` |

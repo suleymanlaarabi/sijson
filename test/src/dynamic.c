@@ -88,22 +88,22 @@ void dynamic_stringify(void) {
     test_assert(sijson_array_push(tags, sijson_make_string("json")));
     test_assert(sijson_object_set(root, "tags", tags));
 
-    char *json = sijson_stringify(root);
+    char *json = sijson_value_to_str(root);
     test_null((void *)sijson_error());
     test_str(json, "{\"name\":\"Ada\",\"age\":37,\"active\":true,\"tags\":[\"c\",\"json\"]}");
     free(json);
 
-    json = sijson_stringify(sijson_make_string("a\nb\t\"c\""));
+    json = sijson_value_to_str(sijson_make_string("a\nb\t\"c\""));
     test_null((void *)sijson_error());
     test_str(json, "\"a\\nb\\t\\\"c\\\"\"");
     free(json);
 
-    json = sijson_stringify(NULL);
+    json = sijson_value_to_str(NULL);
     test_null((void *)sijson_error());
     test_str(json, "null");
     free(json);
 
-    json = sijson_stringify(sijson_make_number(INFINITY));
+    json = sijson_value_to_str(sijson_make_number(INFINITY));
     test_null(json);
     test_not_null((void *)sijson_error());
 }

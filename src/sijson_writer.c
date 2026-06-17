@@ -210,6 +210,3 @@ char *sijson_value_to_str(sijson_value_t value) {
     return writer.data;
 }
 
-char *sijson_stringify(sijson_value_t value) {
-    return sijson_value_to_str(value);
-}

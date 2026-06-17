@@ -84,7 +84,6 @@ typedef enum sijson_type {
  */
 sijson_value_t sijson_parse(const char *json);
 char *sijson_value_to_str(sijson_value_t value);
-char *sijson_stringify(sijson_value_t value);
 
 /*
  * Reset or release the internal arena used by sijson_value_t values.

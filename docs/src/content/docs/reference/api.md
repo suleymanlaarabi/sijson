@@ -1,163 +1,44 @@
 ---
 title: API Reference
-description: Public symbols from sijson.h.
+description: sijson API Reference.
 ---
 
-Include the public API with:
+`sijson` is designed to be used through its C23-friendly macros.
 
-```c
-#include <sijson.h>
-```
-
-## Type declaration macros
-
-### `SIJSON(type, fields)`
-
-Declares and defines a JSON-reflectable type in the current translation unit.
-
-```c
-SIJSON(User, {
-    char *name;
-    int age;
-});
-```
-
-### `SIJSON_DECLARE(type, fields)`
-
-Declares a JSON-reflectable type in a header.
-
-```c
-SIJSON_DECLARE(User, {
-    char *name;
-    int age;
-});
-```
-
-### `SIJSON_DEFINE(type)`
-
-Defines storage for a type declared with `SIJSON_DECLARE`. Use it in exactly one
-source file.
-
-```c
-SIJSON_DEFINE(User)
-```
-
-### `sijson_handle(type)`
-
-Expands to the internal reflected type handle symbol for `type`.
-Most code does not need this directly, except when calling low-level functions.
-
-## Registry
-
-```c
-sireflect_registry_t *sijson_default_registry(void);
-```
-
-Returns the default `sireflect` registry used by the convenience API. The
-registry is initialized lazily.
-
-## Typed serialization
+## Typed JSON
 
 ```c
 #define sijson_to_json(type, ...)
 #define sijson_to_json_ptr(type, ptr)
-
-char *sijson_to_json_impl(
-    sireflect_handle_t *ref,
-    const sireflect_struct_desc_t *desc,
-    const void *ptr
-);
-```
-
-`sijson_to_json` serializes a compound initializer.
-
-```c
-char *json = sijson_to_json(User, { .name = "Ada", .age = 37 });
-free(json);
-```
-
-`sijson_to_json_ptr` serializes an existing object.
-
-```c
-User user = { .name = "Ada", .age = 37 };
-char *json = sijson_to_json_ptr(User, &user);
-free(json);
-```
-
-Both return a newly allocated string owned by the caller, or `NULL` on failure.
-
-## Typed deserialization
-
-```c
 #define sijson_from_json(type, json)
-
-void *sijson_from_json_impl(
-    sireflect_handle_t *ref,
-    const sireflect_struct_desc_t *desc,
-    const char *json
-);
-```
-
-`sijson_from_json` deserializes JSON into a struct value.
-
-```c
-User user = sijson_from_json(User, json);
-sijson_free(User, &user);
-```
-
-The low-level function returns a pointer to the internal temporary buffer, or
-`NULL` on failure.
-
-## Free deserialized fields
-
-```c
 #define sijson_free(type, ptr)
-
-void sijson_free_impl(
-    sireflect_handle_t *ref,
-    const sireflect_struct_desc_t *desc,
-    void *ptr
-);
 ```
 
-Releases heap-owned fields inside a struct produced by `sijson_from_json`.
-It does not free the struct object itself.
+`sijson_to_json` serializes a value written as a compound initializer. It
+returns a newly allocated JSON string owned by the caller, or `NULL` on failure.
 
-```c
-User user = sijson_from_json(User, json);
-sijson_free(User, &user);
-```
+`sijson_to_json_ptr` serializes a value from a pointer. It returns a newly
+allocated JSON string owned by the caller, or `NULL` on failure.
 
-## Dynamic value types
+`sijson_from_json` deserializes a JSON string into a struct. The returned
+struct is copied from an internal temporary buffer and stays valid until the
+end of the expression.
 
-```c
-typedef struct sijson_value *sijson_value_t;
+`sijson_free` releases heap-owned fields (like `char *`) inside a struct
+produced by `sijson_from_json`. It does not free the struct pointer itself.
 
-typedef enum sijson_type {
-    SIJSON_NULL,
-    SIJSON_BOOL,
-    SIJSON_NUMBER,
-    SIJSON_STRING,
-    SIJSON_ARRAY,
-    SIJSON_OBJECT,
-} sijson_type_t;
-```
-
-`sijson_value_t` is an opaque handle for arbitrary JSON.
-
-## Parse and stringify dynamic JSON
+## Dynamic JSON
 
 ```c
 sijson_value_t sijson_parse(const char *json);
 char *sijson_value_to_str(sijson_value_t value);
-char *sijson_stringify(sijson_value_t value);
 ```
 
 `sijson_parse` returns a dynamic JSON value allocated in `sijson`'s internal
 arena, or `NULL` on failure.
 
 `sijson_value_to_str` returns a newly allocated JSON string owned by the caller,
-or `NULL` on failure. `sijson_stringify` is kept as an alias.
+or `NULL` on failure.
 
 ## Dynamic arena lifetime
 

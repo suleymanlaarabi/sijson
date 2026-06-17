@@ -8,7 +8,7 @@ The memory rules are intentionally small, but they matter.
 ## Serialized JSON strings
 
 `sijson_to_json`, `sijson_to_json_ptr`, `sijson_value_to_str`, and
-`sijson_stringify` return newly allocated strings.
+`sijson_value_to_str` return newly allocated strings.
 
 ```c
 char *json = sijson_to_json(User, { .name = "Ada", .age = 37 });
