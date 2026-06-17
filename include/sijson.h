@@ -34,9 +34,9 @@
  *
  * Pair this with SIJSON_DEFINE(type) in exactly one source file.
  */
-#define SIJSON_DECLARE(type, ...)                                                                  \
-    SIREFLECT_STRUCT(type, __VA_ARGS__);                                                           \
-    extern sireflect_handle_t sijson_handle(type);
+#define SIJSON_DECLARE(type, ...)                                              \
+  SIREFLECT_STRUCT(type, __VA_ARGS__);                                         \
+  extern sireflect_handle_t sijson_handle(type);
 
 /* Define storage for a type declared with SIJSON_DECLARE. */
 #define SIJSON_DEFINE(type) sireflect_handle_t sijson_handle(type) = 0;
@@ -47,9 +47,9 @@
  * This is the simplest form and is ideal for examples, tests, and small
  * programs.
  */
-#define SIJSON(type, ...)                                                                          \
-    SIJSON_DECLARE(type, __VA_ARGS__);                                                             \
-    SIJSON_DEFINE(type);
+#define SIJSON(type, ...)                                                      \
+  SIJSON_DECLARE(type, __VA_ARGS__);                                           \
+  SIJSON_DEFINE(type);
 
 /*
  * Default reflection registry used by the convenience macros.
@@ -68,19 +68,20 @@ sireflect_registry_t *sijson_default_registry(void);
 typedef struct sijson_value *sijson_value_t;
 
 typedef enum sijson_type {
-    SIJSON_NULL,
-    SIJSON_BOOL,
-    SIJSON_NUMBER,
-    SIJSON_STRING,
-    SIJSON_ARRAY,
-    SIJSON_OBJECT,
+  SIJSON_NULL,
+  SIJSON_BOOL,
+  SIJSON_NUMBER,
+  SIJSON_STRING,
+  SIJSON_ARRAY,
+  SIJSON_OBJECT,
 } sijson_type_t;
 
 /*
  * Parse/stringify dynamic JSON without a reflected C type.
  *
  * sijson_parse returns a value allocated in sijson's internal arena.
- * sijson_value_to_str returns a newly allocated JSON string owned by the caller.
+ * sijson_value_to_str returns a newly allocated JSON string owned by the
+ * caller.
  */
 sijson_value_t sijson_parse(const char *json);
 char *sijson_value_to_str(sijson_value_t value);
@@ -120,7 +121,8 @@ sijson_value_t sijson_make_object(void);
 
 /* Mutate arrays and objects created as dynamic JSON values. */
 bool sijson_array_push(sijson_value_t array, sijson_value_t value);
-bool sijson_object_set(sijson_value_t object, const char *key, sijson_value_t value);
+bool sijson_object_set(sijson_value_t object, const char *key,
+                       sijson_value_t value);
 
 /*
  * Serialize a value written as a compound initializer.
@@ -132,11 +134,12 @@ bool sijson_object_set(sijson_value_t object, const char *key, sijson_value_t va
  *     Position pos = { .x = 1, .y = 2 };
  *     char *json2 = sijson_to_json_ptr(Position, &pos);
  */
-#define sijson_to_json(type, ...)                                                                  \
-    sijson_to_json_impl(&sijson_handle(type), &sireflect_desc(type), &(type)__VA_ARGS__)
+#define sijson_to_json(type, ...)                                              \
+  sijson_to_json_impl(&sijson_handle(type), &sireflect_desc(type),             \
+                      &(type)__VA_ARGS__)
 
-#define sijson_to_json_ptr(type, ptr) \
-    sijson_to_json_impl(&sijson_handle(type), &sireflect_desc(type), (ptr))
+#define sijson_to_json_ptr(type, ptr)                                          \
+  sijson_to_json_impl(&sijson_handle(type), &sireflect_desc(type), (ptr))
 
 /*
  * Low-level serialization entry point.
@@ -144,11 +147,8 @@ bool sijson_object_set(sijson_value_t object, const char *key, sijson_value_t va
  * Registers desc on first use through ref, then serializes ptr.
  * Returns a newly allocated JSON string owned by the caller.
  */
-char *sijson_to_json_impl(
-    sireflect_handle_t *ref,
-    const sireflect_struct_desc_t *desc,
-    const void *ptr
-);
+char *sijson_to_json_impl(sireflect_handle_t *ref,
+                          const sireflect_struct_desc_t *desc, const void *ptr);
 
 /*
  * Deserialize JSON into a value of name.
@@ -161,8 +161,9 @@ char *sijson_to_json_impl(
  * sijson_from_json call may reuse that buffer, but previously copied structs
  * remain valid as long as they do not contain pointers into sijson memory.
  */
-#define sijson_from_json(type, json)                                                               \
-    *((type *)sijson_from_json_impl(&sijson_handle(type), &sireflect_desc(type), json))
+#define sijson_from_json(type, json)                                           \
+  *((type *)sijson_from_json_impl(&sijson_handle(type), &sireflect_desc(type), \
+                                  json))
 
 /*
  * Low-level deserialization entry point.
@@ -170,25 +171,20 @@ char *sijson_to_json_impl(
  * Registers desc on first use through ref, grows the internal temporary buffer
  * if needed, writes the parsed value into it, and returns that buffer.
  */
-void *sijson_from_json_impl(
-    sireflect_handle_t *ref,
-    const sireflect_struct_desc_t *desc,
-    const char *json
-);
+void *sijson_from_json_impl(sireflect_handle_t *ref,
+                            const sireflect_struct_desc_t *desc,
+                            const char *json);
 
 /*
  * Free heap-owned fields inside a value produced by sijson_from_json.
  *
  * This does not free the struct pointer itself.
  */
-#define sijson_free(type, ptr)                                                                     \
-    sijson_free_impl(&sijson_handle(type), &sireflect_desc(type), (ptr))
+#define sijson_free(type, ptr)                                                 \
+  sijson_free_impl(&sijson_handle(type), &sireflect_desc(type), (ptr))
 
-void sijson_free_impl(
-    sireflect_handle_t *ref,
-    const sireflect_struct_desc_t *desc,
-    void *ptr
-);
+void sijson_free_impl(sireflect_handle_t *ref,
+                      const sireflect_struct_desc_t *desc, void *ptr);
 
 /*
  * Returns the error message from the last failed operation.
