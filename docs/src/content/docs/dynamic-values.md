@@ -97,7 +97,7 @@ sijson_array_push(tags, sijson_make_string("admin"));
 sijson_array_push(tags, sijson_make_string("beta"));
 sijson_object_set(user, "tags", tags);
 
-char *json = sijson_value_to_str(user);
+char *json = sijson_stringify(user);
 puts(json);
 free(json);
 ```

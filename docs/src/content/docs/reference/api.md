@@ -31,13 +31,13 @@ produced by `sijson_from_json`. It does not free the struct pointer itself.
 
 ```c
 sijson_value_t sijson_parse(const char *json);
-char *sijson_value_to_str(sijson_value_t value);
+char *sijson_stringify(sijson_value_t value);
 ```
 
 `sijson_parse` returns a dynamic JSON value allocated in `sijson`'s internal
 arena, or `NULL` on failure.
 
-`sijson_value_to_str` returns a newly allocated JSON string owned by the caller,
+`sijson_stringify` returns a newly allocated JSON string owned by the caller,
 or `NULL` on failure.
 
 ## Dynamic arena lifetime

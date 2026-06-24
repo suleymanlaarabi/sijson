@@ -42,7 +42,7 @@ void dynamic_arena(void) {
     test_assert(sijson_object_set(next, "name", sijson_make_string("Bob")));
     test_str(sijson_string(sijson_object_get(next, "name")), "Bob");
 
-    char *json = sijson_value_to_str(next);
+    char *json = sijson_stringify(next);
     test_null((void *)sijson_error());
     test_str(json, "{\"name\":\"Bob\"}");
     free(json);
@@ -88,22 +88,22 @@ void dynamic_stringify(void) {
     test_assert(sijson_array_push(tags, sijson_make_string("json")));
     test_assert(sijson_object_set(root, "tags", tags));
 
-    char *json = sijson_value_to_str(root);
+    char *json = sijson_stringify(root);
     test_null((void *)sijson_error());
     test_str(json, "{\"name\":\"Ada\",\"age\":37,\"active\":true,\"tags\":[\"c\",\"json\"]}");
     free(json);
 
-    json = sijson_value_to_str(sijson_make_string("a\nb\t\"c\""));
+    json = sijson_stringify(sijson_make_string("a\nb\t\"c\""));
     test_null((void *)sijson_error());
     test_str(json, "\"a\\nb\\t\\\"c\\\"\"");
     free(json);
 
-    json = sijson_value_to_str(NULL);
+    json = sijson_stringify(NULL);
     test_null((void *)sijson_error());
     test_str(json, "null");
     free(json);
 
-    json = sijson_value_to_str(sijson_make_number(INFINITY));
+    json = sijson_stringify(sijson_make_number(INFINITY));
     test_null(json);
     test_not_null((void *)sijson_error());
 }
