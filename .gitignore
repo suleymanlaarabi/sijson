@@ -5,3 +5,4 @@ gcov
 bin
 /temp
 compile_flags.txt
+deps/

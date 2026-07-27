@@ -1,4 +1,5 @@
 #include "sijson_internal.h"
+#include "sireflect.h"
 
 #include <limits.h>
 
@@ -207,6 +208,7 @@ static bool sijson_write_reflected_field(
         return sijson_write_reflected_array(writer, field_type, field_ptr);
     case sireflect_kind_bool:
         break;
+    default:
     }
 
     return sijson_set_error("unsupported field type for serialization");
@@ -405,11 +407,8 @@ static bool sijson_assign_number(
 
 static bool sijson_assign_reflected(sireflect_handle_t type, void *ptr, sijson_value_t value);
 
-static bool sijson_assign_field(
-    const sireflect_type_info_t *field_type,
-    void *field_ptr,
-    sijson_value_t value
-);
+static bool
+sijson_assign_field(const sireflect_type_info_t *field_type, void *field_ptr, sijson_value_t value);
 
 static bool sijson_assign_array(
     const sireflect_type_info_t *array_type,
@@ -511,6 +510,7 @@ static bool sijson_assign_field(
         );
     case sireflect_kind_array:
         return sijson_assign_array(field_type, field_ptr, value);
+    default:
     }
 
     return sijson_set_error("unsupported field type for deserialization");
@@ -664,6 +664,7 @@ static void sijson_free_reflected_field(const sireflect_type_info_t *field_type,
     case sireflect_kind_short:
     case sireflect_kind_int:
     case sireflect_kind_long:
+    case sireflect_kind_function_pointer:
         return;
     }
 }
