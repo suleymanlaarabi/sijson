@@ -56,7 +56,7 @@
  *
  * The implementation initializes it lazily when a type is first used.
  */
-sireflect_registry_t *sijson_default_registry(void);
+SIJSON_API sireflect_registry_t *sijson_default_registry(void);
 
 /*
  * Opaque handle for arbitrary JSON values.
