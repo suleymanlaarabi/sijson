@@ -104,7 +104,7 @@ static bool sijson_arena_commit(size_t need) {
 
 void *sijson_arena_alloc(size_t size, size_t align) {
     if (align == 0) {
-        align = _Alignof(max_align_t);
+        align = _Alignof(sijson_max_align_t);
     }
 
     size_t offset = sijson_align_forward(g_arena.used, align);

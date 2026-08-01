@@ -12,6 +12,16 @@
 #include <stdlib.h>
 #include <string.h>
 
+#if defined(_MSC_VER) && !defined(__clang__)
+typedef union sijson_max_align {
+    long double long_double;
+    void *pointer;
+    long long integer;
+} sijson_max_align_t;
+#else
+typedef max_align_t sijson_max_align_t;
+#endif
+
 #if defined(__GNUC__) || defined(__clang__)
 #define SIJSON_INTERNAL_API __attribute__((visibility("hidden")))
 #else

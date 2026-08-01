@@ -209,6 +209,7 @@ static bool sijson_write_reflected_field(
     case sireflect_kind_bool:
         break;
     default:
+        break;
     }
 
     return sijson_set_error("unsupported field type for serialization");
@@ -511,6 +512,7 @@ static bool sijson_assign_field(
     case sireflect_kind_array:
         return sijson_assign_array(field_type, field_ptr, value);
     default:
+        break;
     }
 
     return sijson_set_error("unsupported field type for deserialization");
