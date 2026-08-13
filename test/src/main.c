@@ -14,7 +14,6 @@ void dynamic_arena(void);
 void dynamic_parse(void);
 void dynamic_stringify(void);
 void dynamic_errors(void);
-void dynamic_registry(void);
 
 // Testsuite 'typed'
 void typed_to_json(void);
@@ -56,10 +55,6 @@ bake_test_case dynamic_testcases[] = {
     {
         "errors",
         dynamic_errors
-    },
-    {
-        "registry",
-        dynamic_registry
     }
 };
 
@@ -134,7 +129,7 @@ static bake_test_suite suites[] = {
         "dynamic",
         NULL,
         NULL,
-        6,
+        5,
         dynamic_testcases
     },
     {

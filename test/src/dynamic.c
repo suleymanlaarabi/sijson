@@ -135,8 +135,3 @@ void dynamic_errors(void) {
     test_false(sijson_object_set(array, "x", sijson_make_null()));
     test_not_null((void *)sijson_error());
 }
-
-void dynamic_registry(void) {
-    test_not_null(sijson_default_registry());
-    test_null((void *)sijson_error());
-}

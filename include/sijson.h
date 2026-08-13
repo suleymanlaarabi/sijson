@@ -52,11 +52,10 @@
     SIJSON_DEFINE(type);
 
 /*
- * Default reflection registry used by the convenience macros.
- *
- * The implementation initializes it lazily when a type is first used.
+ * Typed operations use Sireflect's process-wide context. Call
+ * sireflect_init() before the first typed operation and sireflect_fini() after
+ * the last one. Sijson does not own this lifecycle.
  */
-sireflect_registry_t *sijson_default_registry(void);
 
 /*
  * Opaque handle for arbitrary JSON values.

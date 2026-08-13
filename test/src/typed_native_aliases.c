@@ -19,6 +19,7 @@ SIJSON(NativeAliasArrays, {
 });
 
 void typed_native_aliases_to_json(void) {
+    sireflect_init();
     NativeAliases aliases = {
         .code = -12,
         .byte = 250,
@@ -46,9 +47,11 @@ void typed_native_aliases_to_json(void) {
     test_null((void *)sijson_error());
     test_str(json, "{\"values\":[11,22],\"codes\":[-1,0,1]}");
     free(json);
+    sireflect_fini();
 }
 
 void typed_native_aliases_from_json(void) {
+    sireflect_init();
     NativeAliases aliases = sijson_from_json(
         NativeAliases,
         "{\"code\":-12,\"byte\":250,\"small\":65000,\"flags\":4000000000,\"span\":123456789,"
@@ -71,9 +74,11 @@ void typed_native_aliases_from_json(void) {
     test_int(arrays.codes[0], -1);
     test_int(arrays.codes[1], 0);
     test_int(arrays.codes[2], 1);
+    sireflect_fini();
 }
 
 void typed_native_aliases_reject_range(void) {
+    sireflect_init();
     NativeAliases aliases = sijson_from_json(
         NativeAliases,
         "{\"code\":128,\"byte\":0,\"small\":0,\"flags\":0,\"span\":0,\"count\":0,\"mask\":0}"
@@ -108,4 +113,5 @@ void typed_native_aliases_reject_range(void) {
     );
     test_not_null((void *)sijson_error());
     test_uint(aliases.mask, 0);
+    sireflect_fini();
 }

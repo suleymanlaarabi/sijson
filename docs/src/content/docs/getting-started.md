@@ -10,6 +10,9 @@ This page shows the normal `sijson` flow:
 3. Deserialize JSON with `sijson_from_json`.
 4. Release deserialized heap fields with `sijson_free`.
 
+Typed operations require an active Sireflect context. Call `sireflect_init()`
+before the first typed operation and `sireflect_fini()` after the last one.
+
 ## Include sijson
 
 ```c
@@ -17,6 +20,15 @@ This page shows the normal `sijson` flow:
 ```
 
 `sijson.h` includes `sireflect.h`, `stdbool.h`, and `stddef.h`.
+
+Before using a reflected type, initialize Sireflect. Keep the context alive
+for all typed operations, then release it once those operations are complete.
+
+```c
+sireflect_init();
+/* typed sijson operations */
+sireflect_fini();
+```
 
 ## Declare a type
 

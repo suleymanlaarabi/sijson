@@ -7,6 +7,16 @@ description: sijson API Reference.
 
 ## Typed JSON
 
+Typed operations require an active Sireflect context. Pair every
+`sireflect_init()` with one `sireflect_fini()` after the last typed operation.
+Do not use reflected handles or metadata after the final `fini`.
+
+```c
+sireflect_init();
+/* typed JSON operations */
+sireflect_fini();
+```
+
 ```c
 #define sijson_to_json(type, ...)
 #define sijson_to_json_ptr(type, ptr)

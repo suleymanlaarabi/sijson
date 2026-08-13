@@ -19,8 +19,7 @@
           "arena",
           "parse",
           "stringify",
-          "errors",
-          "registry"
+          "errors"
         ]
       },
       {

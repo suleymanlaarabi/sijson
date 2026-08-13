@@ -26,6 +26,7 @@ SIJSON(Event, {
 });
 
 void typed_to_json(void) {
+    sireflect_init();
     User user = {
         .name = "Ada",
         .age = 37,
@@ -47,9 +48,11 @@ void typed_to_json(void) {
     test_null((void *)sijson_error());
     test_str(json, "{\"name\":null,\"age\":37,\"active\":true}");
     free(json);
+    sireflect_fini();
 }
 
 void typed_from_json(void) {
+    sireflect_init();
     User user = sijson_from_json(User, "{\"name\":\"Ada\",\"age\":37,\"active\":true}");
     test_null((void *)sijson_error());
     test_str(user.name, "Ada");
@@ -88,9 +91,11 @@ void typed_from_json(void) {
     test_true(profile.enabled);
     sijson_free(Profile, &profile);
     test_null(profile.name);
+    sireflect_fini();
 }
 
 void typed_errors(void) {
+    sireflect_init();
     User user = sijson_from_json(User, "{\"name\":\"Ada\",\"ignored\":123}");
     test_null((void *)sijson_error());
     test_str(user.name, "Ada");
@@ -111,9 +116,11 @@ void typed_errors(void) {
     char *json = sijson_to_json_ptr(User, NULL);
     test_null(json);
     test_not_null((void *)sijson_error());
+    sireflect_fini();
 }
 
 void typed_dynamic_value(void) {
+    sireflect_init();
     Event event =
         sijson_from_json(Event, "{\"name\":\"created\",\"payload\":{\"kind\":\"user\",\"id\":12}}");
     test_null((void *)sijson_error());
@@ -129,4 +136,5 @@ void typed_dynamic_value(void) {
 
     sijson_free(Event, &event);
     test_null(event.name);
+    sireflect_fini();
 }

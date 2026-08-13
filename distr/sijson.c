@@ -518,31 +518,12 @@ sijson_value_t sijson_parse(const char *json) {
     return value;
 }
 
+#include "sireflect.h"
+
 #include <limits.h>
 
-static sireflect_registry_t *g_registry;
 static void *g_from_json_buffer;
 static size_t g_from_json_capacity;
-
-sireflect_registry_t *sijson_default_registry(void) {
-    if (g_registry == NULL) {
-        g_registry = sireflect_registry_init();
-        if (g_registry == NULL) {
-            sijson_set_error("failed to initialize sireflect registry");
-            return NULL;
-        }
-
-        static const sireflect_struct_desc_t value_desc = {
-            .name = "sijson_value_t",
-            .fields = "{ ptr value; }",
-            .size = sizeof(sijson_value_t),
-            .align = _Alignof(sijson_value_t),
-        };
-        sireflect_register_struct(g_registry, &value_desc);
-    }
-
-    return g_registry;
-}
 
 static sireflect_handle_t
 sijson_register_type(sireflect_handle_t *ref, const sireflect_struct_desc_t *desc) {
@@ -550,16 +531,14 @@ sijson_register_type(sireflect_handle_t *ref, const sireflect_struct_desc_t *des
         sijson_set_error("missing reflection descriptor");
         return SIREFLECT_INVALID_HANDLE;
     }
-    if (*ref != SIREFLECT_INVALID_HANDLE) {
-        return *ref;
-    }
-
-    sireflect_registry_t *reg = sijson_default_registry();
-    if (reg == NULL) {
-        return SIREFLECT_INVALID_HANDLE;
-    }
-
-    *ref = sireflect_register_struct(reg, desc);
+    static const sireflect_struct_desc_t value_desc = {
+        .name = "sijson_value_t",
+        .fields = "{ ptr value; }",
+        .size = sizeof(sijson_value_t),
+        .align = _Alignof(sijson_value_t),
+    };
+    sireflect_register_struct(&value_desc);
+    *ref = sireflect_register_struct(desc);
     return *ref;
 }
 
@@ -579,7 +558,7 @@ static bool sijson_is_char_pointer_type(const sireflect_type_info_t *type) {
         return false;
     }
 
-    const sireflect_type_info_t *pointee = sireflect_type_info(g_registry, type->element_type);
+    const sireflect_type_info_t *pointee = sireflect_type_info(type->element_type);
     return pointee != NULL && pointee->kind == sireflect_kind_char;
 }
 
@@ -602,7 +581,7 @@ static bool sijson_write_reflected_array(
     }
 
     const sireflect_type_info_t *element_type =
-        sireflect_type_info(g_registry, array_type->element_type);
+        sireflect_type_info(array_type->element_type);
     if (element_type == NULL || element_type->size == 0) {
         return sijson_set_error("missing reflected array element type");
     }
@@ -718,13 +697,14 @@ static bool sijson_write_reflected_field(
         }
         return sijson_write_reflected(
             writer,
-            sireflect_type_by_name(g_registry, field_type->name),
+            sireflect_type_by_name(field_type->name),
             field_ptr
         );
     case sireflect_kind_array:
         return sijson_write_reflected_array(writer, field_type, field_ptr);
     case sireflect_kind_bool:
         break;
+    default:
     }
 
     return sijson_set_error("unsupported field type for serialization");
@@ -732,7 +712,7 @@ static bool sijson_write_reflected_field(
 
 static bool
 sijson_write_reflected(sijson_writer_t *writer, sireflect_handle_t type, const void *ptr) {
-    const sireflect_type_info_t *info = sireflect_type_info(g_registry, type);
+    const sireflect_type_info_t *info = sireflect_type_info(type);
     if (info == NULL || info->kind != sireflect_kind_struct) {
         return sijson_set_error("expected reflected struct");
     }
@@ -744,7 +724,7 @@ sijson_write_reflected(sijson_writer_t *writer, sireflect_handle_t type, const v
     const sireflect_fields_t *fields = &info->fields;
     for (size_t i = 0; i < fields->field_count; i++) {
         const sireflect_field_info_t *field = &fields->fields[i];
-        const sireflect_type_info_t *field_type = sireflect_type_info(g_registry, field->type);
+        const sireflect_type_info_t *field_type = sireflect_type_info(field->type);
         const void *field_ptr = (const unsigned char *)ptr + field->offset;
 
         if (i != 0 && !sijson_writer_putc(writer, ',')) {
@@ -942,7 +922,7 @@ static bool sijson_assign_array(
     }
 
     const sireflect_type_info_t *element_type =
-        sireflect_type_info(g_registry, array_type->element_type);
+        sireflect_type_info(array_type->element_type);
     if (element_type == NULL || element_type->size == 0) {
         return sijson_set_error("missing reflected array element type");
     }
@@ -1020,12 +1000,13 @@ static bool sijson_assign_field(
             return true;
         }
         return sijson_assign_reflected(
-            sireflect_type_by_name(g_registry, field_type->name),
+            sireflect_type_by_name(field_type->name),
             field_ptr,
             value
         );
     case sireflect_kind_array:
         return sijson_assign_array(field_type, field_ptr, value);
+    default:
     }
 
     return sijson_set_error("unsupported field type for deserialization");
@@ -1036,7 +1017,7 @@ static bool sijson_assign_reflected(sireflect_handle_t type, void *ptr, sijson_v
         return sijson_set_error("expected JSON object for reflected struct");
     }
 
-    const sireflect_type_info_t *info = sireflect_type_info(g_registry, type);
+    const sireflect_type_info_t *info = sireflect_type_info(type);
     if (info == NULL || info->kind != sireflect_kind_struct) {
         return sijson_set_error("expected reflected struct type");
     }
@@ -1050,7 +1031,7 @@ static bool sijson_assign_reflected(sireflect_handle_t type, void *ptr, sijson_v
             continue;
         }
 
-        const sireflect_type_info_t *field_type = sireflect_type_info(g_registry, field->type);
+        const sireflect_type_info_t *field_type = sireflect_type_info(field->type);
         void *field_ptr = (unsigned char *)ptr + field->offset;
         if (!sijson_assign_field(field_type, field_ptr, member)) {
             return false;
@@ -1071,7 +1052,7 @@ void *sijson_from_json_impl(
         return NULL;
     }
 
-    const sireflect_type_info_t *info = sireflect_type_info(g_registry, type);
+    const sireflect_type_info_t *info = sireflect_type_info(type);
     if (info == NULL) {
         sijson_set_error("missing reflected type info");
         return NULL;
@@ -1109,7 +1090,7 @@ static void sijson_free_reflected(sireflect_handle_t type, void *ptr) {
         return;
     }
 
-    const sireflect_type_info_t *info = sireflect_type_info(g_registry, type);
+    const sireflect_type_info_t *info = sireflect_type_info(type);
     if (info == NULL || info->kind != sireflect_kind_struct || sijson_is_value_type(info)) {
         return;
     }
@@ -1117,7 +1098,7 @@ static void sijson_free_reflected(sireflect_handle_t type, void *ptr) {
     const sireflect_fields_t *fields = &info->fields;
     for (size_t i = 0; i < fields->field_count; i++) {
         const sireflect_field_info_t *field = &fields->fields[i];
-        const sireflect_type_info_t *field_type = sireflect_type_info(g_registry, field->type);
+        const sireflect_type_info_t *field_type = sireflect_type_info(field->type);
         void *field_ptr = (unsigned char *)ptr + field->offset;
 
         sijson_free_reflected_field(field_type, field_ptr);
@@ -1142,12 +1123,12 @@ static void sijson_free_reflected_field(const sireflect_type_info_t *field_type,
         return;
     case sireflect_kind_struct:
         if (!sijson_is_value_type(field_type)) {
-            sijson_free_reflected(sireflect_type_by_name(g_registry, field_type->name), field_ptr);
+            sijson_free_reflected(sireflect_type_by_name(field_type->name), field_ptr);
         }
         return;
     case sireflect_kind_array: {
         const sireflect_type_info_t *element_type =
-            sireflect_type_info(g_registry, field_type->element_type);
+            sireflect_type_info(field_type->element_type);
         if (element_type == NULL || element_type->size == 0) {
             return;
         }
@@ -1179,6 +1160,7 @@ static void sijson_free_reflected_field(const sireflect_type_info_t *field_type,
     case sireflect_kind_short:
     case sireflect_kind_int:
     case sireflect_kind_long:
+    case sireflect_kind_function_pointer:
         return;
     }
 }
@@ -1334,7 +1316,9 @@ char *sijson_arena_dup_cstr(const char *str) {
     return sijson_arena_dup_range(str, strlen(str));
 }
 
-size_t sijson_arena_mark(void) { return g_arena.used; }
+size_t sijson_arena_mark(void) {
+    return g_arena.used;
+}
 
 void sijson_arena_rewind(size_t mark) {
     if (mark <= g_arena.used) {

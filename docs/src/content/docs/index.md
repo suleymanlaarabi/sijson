@@ -21,6 +21,8 @@ SIJSON(User, {
 });
 
 int main(void) {
+    sireflect_init();
+
     char *json = sijson_to_json(User, {
         .name = "Ada",
         .age = 37,
@@ -34,6 +36,7 @@ int main(void) {
     printf("%s\n", user.name);
 
     sijson_free(User, &user);
+    sireflect_fini();
     return 0;
 }
 ```

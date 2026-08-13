@@ -37,6 +37,7 @@ static void typed_array_register_struct_item(void) {
 }
 
 void typed_array_to_json_numbers(void) {
+    sireflect_init();
     Vector vector = { .values = { 1.25f, 2.5f, 3.75f, 4.0f } };
 
     char *json = sijson_to_json_ptr(Vector, &vector);
@@ -49,9 +50,11 @@ void typed_array_to_json_numbers(void) {
     test_null((void *)sijson_error());
     test_str(json, "{\"ids\":[7,8,9]}");
     free(json);
+    sireflect_fini();
 }
 
 void typed_array_from_json_numbers(void) {
+    sireflect_init();
     Vector vector = sijson_from_json(Vector, "{\"values\":[1.25,2.5,3.75,4]}");
     test_null((void *)sijson_error());
     test_flt(vector.values[0], 1.25);
@@ -64,9 +67,11 @@ void typed_array_from_json_numbers(void) {
     test_int(list.ids[0], 7);
     test_int(list.ids[1], 8);
     test_int(list.ids[2], 9);
+    sireflect_fini();
 }
 
 void typed_array_roundtrip_matrix(void) {
+    sireflect_init();
     Matrix matrix = { .values = { { 1.0f, 2.0f }, { 3.5f, 4.25f } } };
 
     char *json = sijson_to_json_ptr(Matrix, &matrix);
@@ -80,9 +85,11 @@ void typed_array_roundtrip_matrix(void) {
     test_flt(parsed.values[1][0], 3.5);
     test_flt(parsed.values[1][1], 4.25);
     free(json);
+    sireflect_fini();
 }
 
 void typed_array_of_structs(void) {
+    sireflect_init();
     typed_array_register_struct_item();
 
     ArrayStructBox box = {
@@ -117,9 +124,11 @@ void typed_array_of_structs(void) {
     sijson_free(ArrayStructBox, &box);
     test_null(box.items[0].label);
     test_null(box.items[1].label);
+    sireflect_fini();
 }
 
 void typed_array_of_strings(void) {
+    sireflect_init();
     ArrayStrings strings = sijson_from_json(ArrayStrings, "{\"names\":[\"Ada\",\"Bob\"]}");
     test_null((void *)sijson_error());
     test_str(strings.names[0], "Ada");
@@ -133,9 +142,11 @@ void typed_array_of_strings(void) {
     sijson_free(ArrayStrings, &strings);
     test_null(strings.names[0]);
     test_null(strings.names[1]);
+    sireflect_fini();
 }
 
 void typed_array_rejects_wrong_length(void) {
+    sireflect_init();
     Vector vector = sijson_from_json(Vector, "{\"values\":[1,2]}");
     test_not_null((void *)sijson_error());
     test_flt(vector.values[0], 0.0);
@@ -144,9 +155,11 @@ void typed_array_rejects_wrong_length(void) {
     vector = sijson_from_json(Vector, "{\"values\":[1,2,3,4,5]}");
     test_not_null((void *)sijson_error());
     test_flt(vector.values[0], 0.0);
+    sireflect_fini();
 }
 
 void typed_array_rejects_wrong_type(void) {
+    sireflect_init();
     Vector vector = sijson_from_json(Vector, "{\"values\":[1,\"bad\",3,4]}");
     test_not_null((void *)sijson_error());
     test_flt(vector.values[0], 0.0);
@@ -154,4 +167,5 @@ void typed_array_rejects_wrong_type(void) {
     Matrix matrix = sijson_from_json(Matrix, "{\"values\":[[1,2],[3]]}");
     test_not_null((void *)sijson_error());
     test_flt(matrix.values[0][0], 0.0);
+    sireflect_fini();
 }

@@ -5,6 +5,11 @@ description: Ownership rules for JSON strings, deserialized structs, and dynamic
 
 The memory rules are intentionally small, but they matter.
 
+Typed JSON operations require an active Sireflect context. Call
+`sireflect_init()` before the first typed operation and `sireflect_fini()` after
+the last one. Reflected handles and metadata are invalid after the final
+`fini`.
+
 ## Serialized JSON strings
 
 `sijson_to_json`, `sijson_to_json_ptr`, `sijson_stringify`, and
