@@ -56,6 +56,10 @@
  * sireflect_init() before the first typed operation and sireflect_fini() after
  * the last one. Sijson does not own this lifecycle.
  */
+<<<<<<< HEAD
+=======
+SIJSON_API sireflect_registry_t *sijson_default_registry(void);
+>>>>>>> 7c978e7eaf821d0ce13af4ed96ef1e7d7e3eec62
 
 /*
  * Opaque handle for arbitrary JSON values.
@@ -82,45 +86,45 @@ typedef enum sijson_type {
  * sijson_stringify returns a newly allocated JSON string owned by the
  * caller.
  */
-sijson_value_t sijson_parse(const char *json);
-char *sijson_stringify(sijson_value_t value);
+SIJSON_API sijson_value_t sijson_parse(const char *json);
+SIJSON_API char *sijson_stringify(sijson_value_t value);
 
 /*
  * Reset or release the internal arena used by sijson_value_t values.
  * sijson_clean keeps allocated capacity for reuse.
  * sijson_release frees the arena storage.
  */
-void sijson_clean(void);
-void sijson_release(void);
+SIJSON_API void sijson_clean(void);
+SIJSON_API void sijson_release(void);
 
 /* Inspect a dynamic JSON value. */
-sijson_type_t sijson_type(sijson_value_t value);
+SIJSON_API sijson_type_t sijson_type(sijson_value_t value);
 
 /* Read scalar values. The value must have the matching sijson_type_t. */
-bool sijson_bool(sijson_value_t value);
-double sijson_number(sijson_value_t value);
-const char *sijson_string(sijson_value_t value);
+SIJSON_API bool sijson_bool(sijson_value_t value);
+SIJSON_API double sijson_number(sijson_value_t value);
+SIJSON_API const char *sijson_string(sijson_value_t value);
 
 /* Read arrays. */
-size_t sijson_array_len(sijson_value_t value);
-sijson_value_t sijson_array_get(sijson_value_t value, size_t index);
+SIJSON_API size_t sijson_array_len(sijson_value_t value);
+SIJSON_API sijson_value_t sijson_array_get(sijson_value_t value, size_t index);
 
 /* Read objects. */
-size_t sijson_object_len(sijson_value_t value);
-const char *sijson_object_key(sijson_value_t value, size_t index);
-sijson_value_t sijson_object_get(sijson_value_t value, const char *key);
+SIJSON_API size_t sijson_object_len(sijson_value_t value);
+SIJSON_API const char *sijson_object_key(sijson_value_t value, size_t index);
+SIJSON_API sijson_value_t sijson_object_get(sijson_value_t value, const char *key);
 
 /* Build dynamic JSON values in sijson's internal arena. */
-sijson_value_t sijson_make_null(void);
-sijson_value_t sijson_make_bool(bool value);
-sijson_value_t sijson_make_number(double value);
-sijson_value_t sijson_make_string(const char *value);
-sijson_value_t sijson_make_array(void);
-sijson_value_t sijson_make_object(void);
+SIJSON_API sijson_value_t sijson_make_null(void);
+SIJSON_API sijson_value_t sijson_make_bool(bool value);
+SIJSON_API sijson_value_t sijson_make_number(double value);
+SIJSON_API sijson_value_t sijson_make_string(const char *value);
+SIJSON_API sijson_value_t sijson_make_array(void);
+SIJSON_API sijson_value_t sijson_make_object(void);
 
 /* Mutate arrays and objects created as dynamic JSON values. */
-bool sijson_array_push(sijson_value_t array, sijson_value_t value);
-bool sijson_object_set(sijson_value_t object, const char *key, sijson_value_t value);
+SIJSON_API bool sijson_array_push(sijson_value_t array, sijson_value_t value);
+SIJSON_API bool sijson_object_set(sijson_value_t object, const char *key, sijson_value_t value);
 
 /*
  * Serialize a value written as a compound initializer.
@@ -144,7 +148,7 @@ bool sijson_object_set(sijson_value_t object, const char *key, sijson_value_t va
  * Registers desc on first use through ref, then serializes ptr.
  * Returns a newly allocated JSON string owned by the caller.
  */
-char *
+SIJSON_API char *
 sijson_to_json_impl(sireflect_handle_t *ref, const sireflect_struct_desc_t *desc, const void *ptr);
 
 /*
@@ -167,7 +171,7 @@ sijson_to_json_impl(sireflect_handle_t *ref, const sireflect_struct_desc_t *desc
  * Registers desc on first use through ref, grows the internal temporary buffer
  * if needed, writes the parsed value into it, and returns that buffer.
  */
-void *sijson_from_json_impl(
+SIJSON_API void *sijson_from_json_impl(
     sireflect_handle_t *ref,
     const sireflect_struct_desc_t *desc,
     const char *json
@@ -180,11 +184,11 @@ void *sijson_from_json_impl(
  */
 #define sijson_free(type, ptr) sijson_free_impl(&sijson_handle(type), &sireflect_desc(type), (ptr))
 
-void sijson_free_impl(sireflect_handle_t *ref, const sireflect_struct_desc_t *desc, void *ptr);
+SIJSON_API void sijson_free_impl(sireflect_handle_t *ref, const sireflect_struct_desc_t *desc, void *ptr);
 
 /*
  * Returns the error message from the last failed operation.
  */
-const char *sijson_error(void);
+SIJSON_API const char *sijson_error(void);
 
 #endif
