@@ -51,15 +51,6 @@
     SIJSON_DECLARE(type, __VA_ARGS__);                                                             \
     SIJSON_DEFINE(type);
 
-/*
- * Typed operations use Sireflect's process-wide context. Call
- * sireflect_init() before the first typed operation and sireflect_fini() after
- * the last one. Sijson does not own this lifecycle.
- */
-<<<<<<< HEAD
-=======
-SIJSON_API sireflect_registry_t *sijson_default_registry(void);
->>>>>>> 7c978e7eaf821d0ce13af4ed96ef1e7d7e3eec62
 
 /*
  * Opaque handle for arbitrary JSON values.
