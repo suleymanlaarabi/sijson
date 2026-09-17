@@ -28,7 +28,8 @@
           "to_json",
           "from_json",
           "errors",
-          "dynamic_value"
+          "dynamic_value",
+          "enum_fields"
         ]
       },
       {

@@ -48,6 +48,7 @@ dynamic JSON values.
 | `char` | one-character JSON string |
 | `char *` | JSON string or `null` |
 | nested `SIJSON` struct | JSON object |
+| reflected enum | JSON string containing the enumerator name |
 | `sijson_value_t` | arbitrary JSON value |
 
 ```c
@@ -74,6 +75,24 @@ SIJSON(Entity, {
     char *name;
     Position position;
 });
+```
+
+## Enums
+
+Register a `SIREFLECT_ENUM` before serializing a struct that uses it. Enum
+fields and arrays are represented by their enumerator names, and unknown names
+are rejected during deserialization.
+
+```c
+SIREFLECT_ENUM(Status, { STATUS_PENDING, STATUS_ACTIVE = 5 });
+
+SIJSON(Account, {
+    Status status;
+});
+
+sireflect(Status);
+char *json = sijson_to_json(Account, { .status = STATUS_ACTIVE });
+/* {"status":"STATUS_ACTIVE"} */
 ```
 
 ## Arbitrary JSON fields

@@ -46,6 +46,50 @@ static bool sijson_is_char_pointer_type(const sireflect_type_info_t *type) {
 static bool
 sijson_write_reflected(sijson_writer_t *writer, sireflect_handle_t type, const void *ptr);
 
+static const sireflect_enum_value_t *
+sijson_enum_value_from_storage(const sireflect_type_info_t *enum_type, const void *ptr) {
+    if (enum_type == NULL || enum_type->kind != sireflect_kind_enum || ptr == NULL ||
+        enum_type->size == 0 || enum_type->size > sizeof(uint64_t)) {
+        return NULL;
+    }
+
+    uint64_t raw = 0;
+    memcpy(&raw, ptr, enum_type->size);
+    uint64_t mask = enum_type->size == sizeof(raw)
+                        ? UINT64_MAX
+                        : (UINT64_C(1) << (enum_type->size * CHAR_BIT)) - 1;
+    const sireflect_enum_values_t *values = &enum_type->enum_values;
+    for (size_t i = 0; i < values->value_count; i++) {
+        if ((raw & mask) == ((uint64_t)values->values[i].value & mask)) {
+            return &values->values[i];
+        }
+    }
+    return NULL;
+}
+
+static bool sijson_assign_enum(
+    const sireflect_type_info_t *enum_type,
+    void *field_ptr,
+    sijson_value_t value
+) {
+    if (value == NULL || value->type != SIJSON_STRING) {
+        return sijson_set_error("expected JSON string for enum");
+    }
+    if (enum_type->size == 0 || enum_type->size > sizeof(uint64_t)) {
+        return sijson_set_error("unsupported enum storage size");
+    }
+
+    const sireflect_enum_values_t *values = &enum_type->enum_values;
+    for (size_t i = 0; i < values->value_count; i++) {
+        if (strcmp(values->values[i].name, value->as.string) == 0) {
+            uint64_t raw = (uint64_t)values->values[i].value;
+            memcpy(field_ptr, &raw, enum_type->size);
+            return true;
+        }
+    }
+    return sijson_set_error("unknown enum value");
+}
+
 static bool sijson_write_reflected_field(
     sijson_writer_t *writer,
     const sireflect_type_info_t *field_type,
@@ -165,6 +209,14 @@ static bool sijson_write_reflected_field(
         return sijson_writer_cstr(writer, number);
     case sireflect_kind_char:
         return sijson_writer_string(writer, (char[2]){ *(const char *)field_ptr, '\0' });
+    case sireflect_kind_enum: {
+        const sireflect_enum_value_t *value =
+            sijson_enum_value_from_storage(field_type, field_ptr);
+        if (value == NULL) {
+            return sijson_set_error("unknown enum value");
+        }
+        return sijson_writer_string(writer, value->name);
+    }
     case sireflect_kind_ptr:
         return sijson_writer_string(writer, *(char *const *)field_ptr);
     case sireflect_kind_pointer:
@@ -462,6 +514,8 @@ static bool sijson_assign_field(
         }
         *(char *)field_ptr = value->as.string[0];
         return true;
+    case sireflect_kind_enum:
+        return sijson_assign_enum(field_type, field_ptr, value);
     case sireflect_kind_ptr:
     case sireflect_kind_pointer:
         if (!sijson_is_char_pointer_type(field_type)) {
@@ -644,6 +698,7 @@ static void sijson_free_reflected_field(const sireflect_type_info_t *field_type,
     case sireflect_kind_int:
     case sireflect_kind_long:
     case sireflect_kind_function_pointer:
+    case sireflect_kind_enum:
         return;
     }
 }

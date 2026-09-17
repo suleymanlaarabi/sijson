@@ -5,7 +5,18 @@
     "author": "Suleyman Laarabi",
     "description": "A fast, easy-to-use JSON serialization and deserialization library for C23",
     "clangd": true,
-    "use": ["sireflect"]
+    "use": ["sireflect"],
+    "amalgamate": [
+      {
+        "path": "distr",
+        "dependencies": [
+          {
+            "when": "1",
+            "use": ["sireflect"]
+          }
+        ]
+      }
+    ]
   },
   "bundle": {
     "repositories": {

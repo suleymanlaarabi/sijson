@@ -20,6 +20,7 @@ void typed_to_json(void);
 void typed_from_json(void);
 void typed_errors(void);
 void typed_dynamic_value(void);
+void typed_enum_fields(void);
 
 // Testsuite 'typed_array'
 void typed_array_to_json_numbers(void);
@@ -74,6 +75,10 @@ bake_test_case typed_testcases[] = {
     {
         "dynamic_value",
         typed_dynamic_value
+    },
+    {
+        "enum_fields",
+        typed_enum_fields
     }
 };
 
@@ -136,7 +141,7 @@ static bake_test_suite suites[] = {
         "typed",
         NULL,
         NULL,
-        4,
+        5,
         typed_testcases
     },
     {
