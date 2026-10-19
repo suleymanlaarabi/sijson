@@ -2,7 +2,7 @@
 #define SIJSON_H
 
 /* This generated file contains includes for project dependencies. */
-#include "sijson/bake_config.h"
+#include <sijson/export.h>
 #include "sireflect.h"
 #include <stdbool.h>
 #include <stddef.h>
