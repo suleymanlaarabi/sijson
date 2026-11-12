@@ -30,6 +30,7 @@ void typed_array_of_structs(void);
 void typed_array_of_strings(void);
 void typed_array_rejects_wrong_length(void);
 void typed_array_rejects_wrong_type(void);
+void typed_array_dynamic_vectors(void);
 
 // Testsuite 'typed_native_aliases'
 void typed_native_aliases_to_json(void);
@@ -110,6 +111,10 @@ bake_test_case typed_array_testcases[] = {
     {
         "rejects_wrong_type",
         typed_array_rejects_wrong_type
+    },
+    {
+        "dynamic_vectors",
+        typed_array_dynamic_vectors
     }
 };
 
@@ -148,7 +153,7 @@ static bake_test_suite suites[] = {
         "typed_array",
         NULL,
         NULL,
-        7,
+        8,
         typed_array_testcases
     },
     {

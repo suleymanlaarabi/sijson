@@ -2,6 +2,7 @@
 #include <sijson_test.h>
 
 #include <stdlib.h>
+#include <stdio.h>
 
 SIJSON(Vector, {
     float values[4];
@@ -28,6 +29,39 @@ SIJSON(ArrayStructBox, {
 SIJSON(ArrayStrings, {
     char *names[2];
 });
+
+void typed_array_dynamic_vectors(void) {
+    sireflect_init();
+    sireflect_handle_t strings = sireflect_try_register_dynamic_struct("VectorString", "{ char *text; }");
+    sireflect_handle_t vector = sireflect_vector_type(sireflect_type_fields(strings)->fields[0].type);
+    char fields[256];
+    snprintf(fields, sizeof fields, "{ %s values; }", sireflect_type_name(vector));
+    sireflect_struct_desc_t desc = { .name = "DynamicStrings", .fields = fields,
+        .size = sizeof(sireflect_vector_t), .align = _Alignof(sireflect_vector_t) };
+    sireflect_handle_t type = 0;
+    char *strings_data[] = { "one", "two" };
+    sireflect_vector_t value = { strings_data, 2 };
+    char *json = sijson_to_json_impl(&type, &desc, &value);
+    test_null((void *)sijson_error());
+    test_str(json, "{\"values\":[\"one\",\"two\"]}");
+    sireflect_vector_t *decoded = sijson_from_json_impl(&type, &desc, json);
+    test_null((void *)sijson_error());
+    test_uint(decoded->count, 2);
+    test_str(((char **)decoded->data)[0], "one");
+    test_str(((char **)decoded->data)[1], "two");
+    test_assert(decoded->data != strings_data);
+    sijson_free_impl(&type, &desc, decoded);
+    free(json);
+    decoded = sijson_from_json_impl(&type, &desc, "{\"values\":[\"allocated before error\",42]}");
+    test_not_null((void *)sijson_error());
+    test_uint(decoded->count, 0);
+    test_null(decoded->data);
+    decoded = sijson_from_json_impl(&type, &desc, "{\"values\":[]}");
+    test_null((void *)sijson_error());
+    test_uint(decoded->count, 0);
+    sijson_free_impl(&type, &desc, decoded);
+    sireflect_fini();
+}
 
 static void typed_array_register_struct_item(void) {
     ArrayStructItem item = { 0 };

@@ -101,7 +101,8 @@ static bool sijson_write_reflected_array(
     const sireflect_type_info_t *array_type,
     const void *array_ptr
 ) {
-    if (array_type == NULL || array_type->kind != sireflect_kind_array) {
+    if (array_type == NULL || (array_type->kind != sireflect_kind_array &&
+        array_type->kind != sireflect_kind_vector)) {
         return sijson_set_error("expected reflected array type");
     }
 
@@ -115,7 +116,15 @@ static bool sijson_write_reflected_array(
         return false;
     }
 
-    for (size_t i = 0; i < array_type->element_count; i++) {
+    size_t count = array_type->element_count;
+    if (array_type->kind == sireflect_kind_vector) {
+        const sireflect_vector_t *vector = array_ptr;
+        count = vector->count;
+        array_ptr = vector->data;
+        if ((count && !array_ptr) || count > SIZE_MAX / element_type->size)
+            return sijson_set_error("invalid reflected vector storage");
+    }
+    for (size_t i = 0; i < count; i++) {
         const void *element_ptr = (const unsigned char *)array_ptr + i * element_type->size;
 
         if (i != 0 && !sijson_writer_putc(writer, ',')) {
@@ -234,6 +243,7 @@ static bool sijson_write_reflected_field(
             field_ptr
         );
     case sireflect_kind_array:
+    case sireflect_kind_vector:
         return sijson_write_reflected_array(writer, field_type, field_ptr);
     case sireflect_kind_bool:
         break;
@@ -445,13 +455,14 @@ static bool sijson_assign_array(
     void *array_ptr,
     sijson_value_t value
 ) {
-    if (array_type == NULL || array_type->kind != sireflect_kind_array) {
+    if (array_type == NULL || (array_type->kind != sireflect_kind_array &&
+        array_type->kind != sireflect_kind_vector)) {
         return sijson_set_error("expected reflected array type");
     }
     if (value == NULL || value->type != SIJSON_ARRAY) {
         return sijson_set_error("expected JSON array");
     }
-    if (value->as.array.len != array_type->element_count) {
+    if (array_type->kind == sireflect_kind_array && value->as.array.len != array_type->element_count) {
         return sijson_set_error("JSON array length does not match reflected array");
     }
 
@@ -461,7 +472,19 @@ static bool sijson_assign_array(
         return sijson_set_error("missing reflected array element type");
     }
 
-    for (size_t i = 0; i < array_type->element_count; i++) {
+    size_t count = array_type->element_count;
+    if (array_type->kind == sireflect_kind_vector) {
+        sireflect_vector_t *vector = array_ptr;
+        count = value->as.array.len;
+        if (count > SIZE_MAX / element_type->size)
+            return sijson_set_error("reflected vector size overflow");
+        vector->data = count ? calloc(count, element_type->size) : NULL;
+        if (count && !vector->data)
+            return sijson_set_error("out of memory");
+        vector->count = count;
+        array_ptr = vector->data;
+    }
+    for (size_t i = 0; i < count; i++) {
         void *element_ptr = (unsigned char *)array_ptr + i * element_type->size;
         if (!sijson_assign_field(element_type, element_ptr, value->as.array.items[i])) {
             return false;
@@ -541,6 +564,7 @@ static bool sijson_assign_field(
             value
         );
     case sireflect_kind_array:
+    case sireflect_kind_vector:
         return sijson_assign_array(field_type, field_ptr, value);
     default:
         break;
@@ -578,6 +602,8 @@ static bool sijson_assign_reflected(sireflect_handle_t type, void *ptr, sijson_v
     return true;
 }
 
+static void sijson_free_reflected(sireflect_handle_t type, void *ptr);
+
 void *sijson_from_json_impl(
     sireflect_handle_t *ref,
     const sireflect_struct_desc_t *desc,
@@ -613,6 +639,7 @@ void *sijson_from_json_impl(
     }
 
     if (!sijson_assign_reflected(type, g_from_json_buffer, root)) {
+        sijson_free_reflected(type, g_from_json_buffer);
         memset(g_from_json_buffer, 0, info->size);
         return g_from_json_buffer;
     }
@@ -663,15 +690,27 @@ static void sijson_free_reflected_field(const sireflect_type_info_t *field_type,
             sijson_free_reflected(sireflect_type_by_name(field_type->name), field_ptr);
         }
         return;
-    case sireflect_kind_array: {
+    case sireflect_kind_array:
+    case sireflect_kind_vector: {
         const sireflect_type_info_t *element_type =
             sireflect_type_info(field_type->element_type);
         if (element_type == NULL || element_type->size == 0) {
             return;
         }
-        for (size_t i = 0; i < field_type->element_count; i++) {
-            void *element_ptr = (unsigned char *)field_ptr + i * element_type->size;
+        size_t count = field_type->element_count;
+        void *data = field_ptr;
+        if (field_type->kind == sireflect_kind_vector) {
+            sireflect_vector_t *vector = field_ptr;
+            count = vector->count;
+            data = vector->data;
+        }
+        for (size_t i = 0; i < count; i++) {
+            void *element_ptr = (unsigned char *)data + i * element_type->size;
             sijson_free_reflected_field(element_type, element_ptr);
+        }
+        if (field_type->kind == sireflect_kind_vector) {
+            free(data);
+            *(sireflect_vector_t *)field_ptr = (sireflect_vector_t){ 0 };
         }
         return;
     }

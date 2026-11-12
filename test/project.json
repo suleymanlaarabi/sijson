@@ -4,11 +4,15 @@
   "value": {
     "public": false,
     "clangd": true,
-    "use": ["sijson"]
+    "use": [
+      "sijson"
+    ]
   },
   "lang.c": {
     "c-standard": "c23",
-    "include": ["../src"]
+    "include": [
+      "../src"
+    ]
   },
   "test": {
     "testsuites": [
@@ -41,7 +45,8 @@
           "of_structs",
           "of_strings",
           "rejects_wrong_length",
-          "rejects_wrong_type"
+          "rejects_wrong_type",
+          "dynamic_vectors"
         ]
       },
       {
